@@ -9,7 +9,7 @@ fi
 
 if [ -z "$COMMIT" ]
 then
-	# export COMMIT="3b47bc037bd44f142ac09848e8d3ecccc726be99"  # 6.7
+	# export COMMIT="3b47bc037bd44f142ac09848e8d3ecccc726be99" # 6.7.0-rc3 
 	export COMMIT="7d0a66e4bb9081d75c82ec4957c50034cb0ea449"  # 6.18
 fi
 
@@ -35,6 +35,7 @@ then
 	git checkout "${COMMIT}"
 	find ../../linux/ -name *.patch | sort | while read line
 	do
+		echo "$line" >> ../../patch.log
 		git am < $line
 	done
 	cd ../../
