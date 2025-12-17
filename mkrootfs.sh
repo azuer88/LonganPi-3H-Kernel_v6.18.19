@@ -28,7 +28,7 @@ BASE_PACKAGE="ca-certificates locales dosfstools binutils file \
 	tree sudo bash-completion memtester openssh-server wireless-regdb \
 	wpasupplicant systemd-timesyncd usbutils parted systemd-sysv \
 	iperf3 stress-ng avahi-daemon tmux screen i2c-tools net-tools \
-	ethtool ckermit lrzsz minicom picocom btop neofetch iotop htop \
+	ethtool ckermit lrzsz minicom picocom btop fastfetch iotop htop \
 	bmon e2fsprogs nvi tcpdump alsa-utils squashfs-tools evtest \
 	pssh tcl-expect tcl atftp udpcast u-boot-menu initramfs-tools \
 	bluez bluez-hcidump bluez-tools btscanner bluez-alsa-utils \
@@ -65,7 +65,7 @@ deb ${MIRROR}/debian/ ${CODENAME} main contrib non-free non-free-firmware
 deb ${MIRROR}/debian/ ${CODENAME}-updates main contrib non-free non-free-firmware
 " | $MMDEBSTRAP \
         --aptopt='Acquire::HTTP::Proxy "http://aptcacheserver:8000";' \
-        --aptopt='Dir::Etc::Trusted "/usr/share/keyrings/debian-archive-keyring.gpg"' --architectures=arm64 -v -d \
+	--architectures=arm64 -v -d \
         --hook-dir=./hooks \
 		--include="${BASE_PACKAGE} ${DESKTOP_PACKAGE} ${USER_PACKAGE}" > ./build/rootfs.tar
 }
