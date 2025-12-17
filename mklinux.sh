@@ -39,6 +39,12 @@ then
 	cd ../../
 fi
 
+# add allwinner bsp support
+if [ ! -e build/linux/bsp ]
+then
+	cp -raf bsp build/linux
+fi
+
 cd build/linux
 export ARCH=arm64
 rm -rf ../linux-*.deb
