@@ -9,8 +9,8 @@ fi
 
 if [ -z "$COMMIT" ]
 then
-	# export COMMIT="3b47bc037bd44f142ac09848e8d3ecccc726be99" # 6.7.0-rc3 
-	export COMMIT="7d0a66e4bb9081d75c82ec4957c50034cb0ea449"  # 6.18
+	export COMMIT="3b47bc037bd44f142ac09848e8d3ecccc726be99" # 6.7.0-rc3 
+	# export COMMIT="0dd3ee31125508cd67f7e7172247f05b7fd1753a"  # 6.7
 fi
 
 if [ -z "$CROSS_COMPILE" ]
