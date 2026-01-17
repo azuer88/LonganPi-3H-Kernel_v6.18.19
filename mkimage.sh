@@ -39,18 +39,22 @@ then
 	fuse2fs -o fakeroot ./build/input/rootfs.ext4 ./build/rootfs
 	fakeroot -- tar --numeric-owner -xpf build/rootfs.tar -C ./build/rootfs/
 	echo "calling customization scripts"
-	exec ./customize_rootfs.sh ./build/rootfs
+	source ./customize_rootfs.sh ./build/rootfs
+	echo "done with customization scripts"
 	sudo umount ./build/rootfs
 else
 	mount ./build/input/rootfs.ext4 ./build/rootfs/
 	tar --numeric-owner -xpf build/rootfs.tar -C ./build/rootfs/
 	echo "calling customization scripts"
-	exec ./customize_rootfs.sh ./build/rootfs
+	source ./customize_rootfs.sh ./build/rootfs
+	echo "done with customization scripts."
 	umount ./build/rootfs
 fi
 
+echo "creating image..."
+
 if [ -z "${IMAGE_NAME:-}" ]; then
-    IMAGE_NAME="sdcard"
+    IMAGE_NAME="sdcard-$MACID"
 fi 
 cat << EOF > "build/genimage.cfg"
 # Minimal SD card image for the Allwinner H618
