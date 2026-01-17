@@ -34,10 +34,11 @@ EOF
 locale-gen
 
 # change hostname
-NEW_HOSTNAME="lpi3h-$(cat /sys/class/net/end0/address | tr -d ':\n' | tail -c 4)"
-echo "NEW HOSTNAME: $NEW_HOSTNAME"
-echo "$NEW_HOSTNAME" > /etc/hostname
-echo "127.0.0.1	$NEW_HOSTNAME" >> /etc/hosts
+# NEW_HOSTNAME="lpi3h-$(cat /sys/class/net/end0/address | tr -d ':\n' | tail -c 4)"
+# echo "NEW HOSTNAME: $NEW_HOSTNAME"
+# echo "$NEW_HOSTNAME" > /etc/hostname
+NEW_HOSTHAME=$(</etc/hostname)
+# echo "127.0.0.1	$NEW_HOSTNAME" >> /etc/hosts
 hostname "$NEW_HOSTNAME"
 nmcli general hostname "$NEW_HOSTNAME"
 systemctl enable avahi-daemon
