@@ -11,24 +11,26 @@ fi
 
 if [ -z "$MIRROR" ]
 then
-    MIRROR="http://ftp.debian.org"
+    MIRROR=http://deb.debian.org
+    # MIRROR="http://ftp.debian.org"
+    # MIRROR="http://cdn-fastly.deb.debian.org"
 fi
 
 if [ -z "$CODENAME" ]
 then
-    CODENAME=stable
+    CODENAME=bookworm
+    NEOFETCH="neofetch" # neofetch or fastfetch
 fi
 
 if [ -z "$USER_PACKAGE" ]
 then
     USER_PACKAGE=""
 fi
-
 BASE_PACKAGE="ca-certificates locales dosfstools binutils file \
 	tree sudo bash-completion memtester openssh-server wireless-regdb \
 	wpasupplicant systemd-timesyncd usbutils parted systemd-sysv \
 	iperf3 stress-ng avahi-daemon tmux screen i2c-tools net-tools \
-	ethtool ckermit lrzsz minicom picocom btop neofetch iotop htop \
+	ethtool ckermit lrzsz minicom picocom btop $NEOFETCH iotop htop \
 	bmon e2fsprogs nvi tcpdump alsa-utils squashfs-tools evtest \
 	pssh tcl-expect tcl atftp udpcast u-boot-menu initramfs-tools \
 	bluez bluez-hcidump bluez-tools btscanner bluez-alsa-utils \
@@ -61,11 +63,12 @@ genrootfs() {
         APTOPT="--aptopt='Acquire::HTTP::Proxy \"$APT_PROXY\";'"
     fi
     echo "
-deb ${MIRROR}/debian/ ${CODENAME} main contrib non-free non-free-firmware
-deb ${MIRROR}/debian/ ${CODENAME}-updates main contrib non-free non-free-firmware
+deb [trusted=yes] ${MIRROR}/debian/ ${CODENAME} main contrib non-free non-free-firmware
+deb [trusted=yes] ${MIRROR}/debian/ ${CODENAME}-updates main contrib non-free non-free-firmware
 " | $MMDEBSTRAP \
         --aptopt='Acquire::HTTP::Proxy "http://aptcacheserver:8000";' \
         --aptopt='Dir::Etc::Trusted "/usr/share/keyrings/debian-archive-keyring.gpg"' --architectures=arm64 -v -d \
+	--aptopt='Dir::Etc::Trusted "/etc/apt/keyrings/debian-archive-keyring.gpg"' \
         --hook-dir=./hooks \
 		--include="${BASE_PACKAGE} ${DESKTOP_PACKAGE} ${USER_PACKAGE}" > ./build/rootfs.tar
 }
