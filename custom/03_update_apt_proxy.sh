@@ -11,3 +11,5 @@ else
 fi
 # ensure it is owned by root
 chown root:root "$1${PROXYFILE}"
+
+echo "$0 done."

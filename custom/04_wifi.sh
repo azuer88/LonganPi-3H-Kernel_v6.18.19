@@ -44,3 +44,5 @@ EOF
 
 # ensure connection is owned by root
 chown root:root "$1$TARGET"
+
+echo "$0 done."

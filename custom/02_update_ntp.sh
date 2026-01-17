@@ -9,3 +9,5 @@ fi
 echo "*** $TIMESYNCD_CONF ***"
 cat "$1$TIMESYNCD_CONF"
 echo "***********************"
+
+echo "$0 done."
