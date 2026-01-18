@@ -15,6 +15,8 @@ cat << EOF >> "$1$TARGET"
 127.0.0.1 $HOSTNAME
 EOF
 
+echo "Current dir: $(pwd)"
+
 # ensure is owned by root
 chown root:root "$1$TARGET"
 

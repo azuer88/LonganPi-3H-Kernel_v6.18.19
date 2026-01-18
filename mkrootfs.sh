@@ -26,6 +26,7 @@ if [ -z "$USER_PACKAGE" ]
 then
     USER_PACKAGE=""
 fi
+
 BASE_PACKAGE="ca-certificates locales dosfstools binutils file \
 	tree sudo bash-completion memtester openssh-server wireless-regdb \
 	wpasupplicant systemd-timesyncd usbutils parted systemd-sysv \
@@ -36,9 +37,6 @@ BASE_PACKAGE="ca-certificates locales dosfstools binutils file \
 	bluez bluez-hcidump bluez-tools btscanner bluez-alsa-utils \
 	device-tree-compiler debian-archive-keyring linux-cpupower \
         network-manager \
-	build-essential libevent-dev libjpeg-dev libbsd-dev git pkg-config \
-	curl \
-	gpiod lm-sensors
 	"
 
 
