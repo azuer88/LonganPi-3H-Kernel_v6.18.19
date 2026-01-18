@@ -26,6 +26,9 @@ mkdir -pv build/images/
 #C
 IMAGE_BLOCKS=`du -k --block-size 500M build/rootfs.tar | cut -f1`
 IMAGE_SIZE=$(( IMAGE_BLOCKS * 500 ))
+# IMAGE_SIZE=$(echo "scale=0; $IMAGE_SIZE * 1.25" | bc | awk '{print int($1)}')
+IMAGE_SIZE=$(echo "$IMAGE_SIZE + 500" | bc)
+echo "Image Size: $IMAGE_SIZE" 
 
 cp -v ./build/u-boot-sunxi-with-spl.bin ./build/input/
 
