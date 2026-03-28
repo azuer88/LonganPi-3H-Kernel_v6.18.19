@@ -1,0 +1,28 @@
+From dccc300f538c3aa8760889e3b1ca629978214e3d Mon Sep 17 00:00:00 2001
+From: Lou Viannay <lou.viannay@octavesolution.com>
+Date: Sun, 29 Mar 2026 05:34:24 +0800
+Subject: [PATCH 55/56] dts: constrain CMA pool below 4 GB for sun4i
+ DMA_BIT_MASK(32)
+
+sun4i_drv.c hard-codes DMA_BIT_MASK(32), so CMA framebuffers allocated
+above 4 GB (e.g. 0x137c00000 on 6 GB boards) cause DRM_IOCTL_MODE_CREATE_DUMB
+to fail. Restrict alloc-ranges to [1 GB, 4 GB).
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+index f072f2ae5..fb813756f 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+@@ -29,7 +29,9 @@
+ 		linux,cma {
+ 			compatible = "shared-dma-pool";
+ 			reusable;
+-			alloc-ranges = <0x0 0x40000000 0x0 0xffffffff>;
++			/* Constrain to below 4 GB so sun4i display engine
++			 * (DMA_BIT_MASK(32)) can use the pool for framebuffers */
++			alloc-ranges = <0x0 0x40000000 0x0 0xbfffffff>;
+ 			size = <0x0 0x8000000>;
+ 			linux,cma-default;
+ 		};
+-- 
+2.17.1
+

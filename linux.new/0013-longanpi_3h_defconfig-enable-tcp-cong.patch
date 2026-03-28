@@ -1,11 +1,8 @@
 From 307df3127c9974c9c8c6579f71631107c920081d Mon Sep 17 00:00:00 2001
 From: Lu Hui <luhui@sipeed.com>
 Date: Tue, 7 Nov 2023 16:25:06 +0800
-Subject: [PATCH 13/48] longanpi_3h_defconfig: enable tcp cong
+Subject: [PATCH 13/56] longanpi_3h_defconfig: enable tcp cong
 
----
- arch/arm64/configs/longanpi_3h_defconfig | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
 index 4da0c2b9f..9cb13fd79 100644
@@ -21,5 +18,5 @@ index 4da0c2b9f..9cb13fd79 100644
  CONFIG_DEFAULT_TCP_CONG="cubic"
  # CONFIG_TCP_MD5SIG is not set
 -- 
-2.34.1
+2.17.1
 

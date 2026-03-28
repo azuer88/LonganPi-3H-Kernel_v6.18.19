@@ -1,34 +1,27 @@
-From f5ff53734175117df65934fc15572894be871393 Mon Sep 17 00:00:00 2001
-From: Blue Cuenca <blue.cuenca@gmail.com>
-Date: Sat, 28 Mar 2026 15:37:28 +0000
-Subject: [PATCH] =?UTF-8?q?cedrus/dts:=20fix=20H616=20VE=20interrupt=20(GI?=
- =?UTF-8?q?C=20SPI=2089=20=E2=86=92=2093)=20and=20remove=20polling=20worka?=
- =?UTF-8?q?round?=
+From 888837b51925667307c473d1d32559d7463c6844 Mon Sep 17 00:00:00 2001
+From: Lou Viannay <lou.viannay@octavesolution.com>
+Date: Sun, 29 Mar 2026 05:34:13 +0800
+Subject: [PATCH 54/56] =?UTF-8?q?cedrus/dts:=20fix=20H616=20VE=20interrupt?=
+ =?UTF-8?q?=20(GIC=20SPI=2089=20=E2=86=92=2093)=20and=20remove=20polling?=
+ =?UTF-8?q?=20workaround?=
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 The H616 VE hardware asserts its interrupt on GIC SPI 93 (HW ID 125),
 not SPI 89 (HW ID 121) as inherited from H6 in the upstream DTS.
-This was confirmed via /dev/mem: GICD_ISPENDR3 bit 29 becomes set
-after decode complete, while bit 25 (SPI 89) never fires.
+Confirmed via /dev/mem: GICD_ISPENDR3 bit 29 set after decode complete,
+bit 25 (SPI 89) never fires.
 
-The BSP cedar driver node (disabled) correctly listed GIC_SPI 93.
-
-With the correct interrupt, the watchdog polling workaround introduced
-to handle the missed IRQ is no longer needed. Revert cedrus_watchdog to
-upstream behavior and restore the 2000ms watchdog timeout.
----
- .../arm64/boot/dts/allwinner/sun50i-h616.dtsi |  2 +-
- .../staging/media/sunxi/cedrus/cedrus_dec.c   |  2 +-
- .../staging/media/sunxi/cedrus/cedrus_hw.c    | 48 -------------------
- 3 files changed, 2 insertions(+), 50 deletions(-)
+With the correct interrupt, the watchdog polling workaround is no longer
+needed. Revert cedrus_watchdog to upstream behavior and restore the
+2000ms watchdog timeout.
 
 diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 index b45c80c19..2594da7f8 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-@@ -166,7 +166,7 @@ video-codec@1c0e000 {
+@@ -166,7 +166,7 @@
  				 <&ccu CLK_MBUS_VE>;
  			clock-names = "ahb", "mod", "ram";
  			resets = <&ccu RST_BUS_VE>;
@@ -118,5 +111,5 @@ index a1168ce60..4991fb6ca 100644
  	v4l2_m2m_buf_done_and_job_finish(ctx->dev->m2m_dev, ctx->fh.m2m_ctx,
  					 VB2_BUF_STATE_ERROR);
 -- 
-2.34.1
+2.17.1
 

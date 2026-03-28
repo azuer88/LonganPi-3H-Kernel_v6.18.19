@@ -1,18 +1,8 @@
 From b4b12732c73e1544d0f9137264d79e8ffe6dc8e9 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 04:42:54 +0000
-Subject: [PATCH 17/48] drivers: add aic8800 bluetooth support
+Subject: [PATCH 17/56] drivers: add aic8800 bluetooth support
 
----
- drivers/bluetooth/Kconfig       |    6 +
- drivers/bluetooth/Makefile      |    1 +
- drivers/bluetooth/Makefile.orig |   55 +
- drivers/bluetooth/aic_btusb.c   | 5008 +++++++++++++++++++++++++++++++
- drivers/bluetooth/aic_btusb.h   |  751 +++++
- 5 files changed, 5821 insertions(+)
- create mode 100644 drivers/bluetooth/Makefile.orig
- create mode 100755 drivers/bluetooth/aic_btusb.c
- create mode 100755 drivers/bluetooth/aic_btusb.h
 
 diff --git a/drivers/bluetooth/Kconfig b/drivers/bluetooth/Kconfig
 index 7df69ccb6..77df7f4cd 100644
@@ -5876,5 +5866,5 @@ index 000000000..4c212acd5
 +#endif
 +
 -- 
-2.34.1
+2.17.1
 

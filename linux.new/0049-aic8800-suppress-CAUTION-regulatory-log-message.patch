@@ -1,11 +1,8 @@
 From daf080d2a8dd6a7fd2ef11eaa5a73fc34fe35336 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Thu, 26 Mar 2026 22:42:50 +0000
-Subject: [PATCH 49/49] aic8800: suppress CAUTION regulatory log message
+Subject: [PATCH 49/56] aic8800: suppress CAUTION regulatory log message
 
----
- drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_mod_params.c | 4 ----
- 1 file changed, 4 deletions(-)
 
 diff --git a/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_mod_params.c b/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_mod_params.c
 index 8e1e7285f..596fdd5aa 100644
@@ -23,5 +20,5 @@ index 8e1e7285f..596fdd5aa 100644
       rtnl_unlock();
  #endif
 -- 
-2.34.1
+2.17.1
 

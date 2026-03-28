@@ -1,18 +1,8 @@
 From 8f6318d760de52d7447b904550f5c6f5df383f5a Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 04:43:28 +0000
-Subject: [PATCH 33/48] [linux] Add HID wakeup support
+Subject: [PATCH 33/56] [linux] Add HID wakeup support
 
----
- drivers/usb/dwc2/gadget.c                |   62 +
- drivers/usb/dwc2/gadget.c.orig           | 5737 ++++++++++++++++++++++
- drivers/usb/gadget/function/f_hid.c      |   16 +
- drivers/usb/gadget/function/f_hid.c.orig | 1694 +++++++
- drivers/usb/gadget/function/u_hid.h      |    1 +
- drivers/usb/gadget/legacy/hid.c          |    2 +-
- 6 files changed, 7511 insertions(+), 1 deletion(-)
- create mode 100644 drivers/usb/dwc2/gadget.c.orig
- create mode 100644 drivers/usb/gadget/function/f_hid.c.orig
 
 diff --git a/drivers/usb/dwc2/gadget.c b/drivers/usb/dwc2/gadget.c
 index 0637bfbc0..8c1301262 100644
@@ -7622,5 +7612,5 @@ index 3684546e8..df23c96f4 100644
  
  /****************************** Gadget Bind ******************************/
 -- 
-2.34.1
+2.17.1
 

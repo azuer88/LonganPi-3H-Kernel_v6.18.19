@@ -1,12 +1,9 @@
 From 8b4f9633af4eec4578c571aeb94a04048c32afa6 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 12:39:12 +0000
-Subject: [PATCH 46/48] build: fix MODULE_IMPORT_NS string syntax in
+Subject: [PATCH 46/56] build: fix MODULE_IMPORT_NS string syntax in
  aic_btusb.c
 
----
- drivers/bluetooth/aic_btusb.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/drivers/bluetooth/aic_btusb.c b/drivers/bluetooth/aic_btusb.c
 index 334e68c46..6cafaecf3 100644
@@ -22,5 +19,5 @@ index 334e68c46..6cafaecf3 100644
  
  MODULE_AUTHOR("AicSemi Corporation");
 -- 
-2.34.1
+2.17.1
 

@@ -1,20 +1,8 @@
 From 2eb4506d310670b3a4cc5fbddab9f008444a8787 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 04:42:44 +0000
-Subject: [PATCH 08/48] drivers: aic8800: fix build
+Subject: [PATCH 08/56] drivers: aic8800: fix build
 
----
- drivers/net/wireless/Kconfig                  |  1 +
- drivers/net/wireless/Kconfig.orig             | 42 +++++++++++++++++++
- drivers/net/wireless/Makefile                 |  1 +
- drivers/net/wireless/Makefile.orig            | 25 +++++++++++
- .../wireless/aic8800/aic8800_fdrv/rwnx_main.c | 27 +++++++++---
- .../aic8800/aic8800_fdrv/rwnx_mod_params.c    |  4 ++
- .../wireless/aic8800/aic8800_fdrv/rwnx_rx.c   |  6 +++
- .../aic8800/aic_load_fw/aicbluetooth_cmds.c   |  3 +-
- 8 files changed, 102 insertions(+), 7 deletions(-)
- create mode 100644 drivers/net/wireless/Kconfig.orig
- create mode 100644 drivers/net/wireless/Makefile.orig
 
 diff --git a/drivers/net/wireless/Kconfig b/drivers/net/wireless/Kconfig
 index c6599594d..1ffeab8ff 100644
@@ -249,5 +237,5 @@ index da9101aef..b18ae9db7 100644
  #include "aic_txrxif.h"
  #include "aicwf_usb.h"
 -- 
-2.34.1
+2.17.1
 

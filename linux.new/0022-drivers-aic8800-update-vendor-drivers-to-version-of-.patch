@@ -1,60 +1,9 @@
 From 4302d4d4208bfd92d4baecaaf42d89f924a606de Mon Sep 17 00:00:00 2001
 From: Tiandi Zhou <zhoutiandi@sipeed.com>
 Date: Mon, 26 Feb 2024 10:54:27 +0800
-Subject: [PATCH 22/48] drivers: aic8800: update vendor drivers to version of
+Subject: [PATCH 22/56] drivers: aic8800: update vendor drivers to version of
  20231212
 
----
- drivers/bluetooth/aic_btusb.c                 |  65 +-
- drivers/bluetooth/aic_btusb.h                 |   2 +
- .../wireless/aic8800/aic8800_fdrv/.gitignore  |  10 +
- .../wireless/aic8800/aic8800_fdrv/Makefile    |  23 +-
- .../aic8800/aic8800_fdrv/aic_vendor.c         |  36 +-
- .../aic8800_fdrv/aicwf_compat_8800dc.c        | 359 +++++++++-
- .../aic8800_fdrv/aicwf_compat_8800dc.h        |  35 +-
- .../aic8800/aic8800_fdrv/aicwf_rx_prealloc.h  |   2 +-
- .../aic8800/aic8800_fdrv/aicwf_tcp_ack.c      | 633 ++++++++++++++++++
- .../aic8800/aic8800_fdrv/aicwf_tcp_ack.h      | 111 +++
- .../aic8800/aic8800_fdrv/aicwf_txrxif.c       |   2 +-
- .../wireless/aic8800/aic8800_fdrv/aicwf_usb.c | 101 ++-
- .../wireless/aic8800/aic8800_fdrv/aicwf_usb.h |  12 +-
- .../aic8800/aic8800_fdrv/aicwf_wext_linux.c   |  31 +-
- .../wireless/aic8800/aic8800_fdrv/lmac_msg.h  |  89 +++
- .../wireless/aic8800/aic8800_fdrv/rwnx_cmds.c |  14 +-
- .../aic8800/aic8800_fdrv/rwnx_debugfs.c       | 117 +++-
- .../wireless/aic8800/aic8800_fdrv/rwnx_defs.h |  38 +-
- .../wireless/aic8800/aic8800_fdrv/rwnx_main.c | 230 +++++--
- .../aic8800/aic8800_fdrv/rwnx_mod_params.c    |  19 +-
- .../aic8800/aic8800_fdrv/rwnx_msg_rx.c        | 154 ++++-
- .../aic8800/aic8800_fdrv/rwnx_msg_tx.c        | 224 ++++---
- .../aic8800/aic8800_fdrv/rwnx_msg_tx.h        |   4 +-
- .../aic8800/aic8800_fdrv/rwnx_platform.c      |  53 +-
- .../aic8800/aic8800_fdrv/rwnx_platform.h      |   4 +-
- .../wireless/aic8800/aic8800_fdrv/rwnx_rx.c   |  32 +-
- .../wireless/aic8800/aic8800_fdrv/rwnx_tx.c   | 187 +++++-
- .../wireless/aic8800/aic8800_fdrv/rwnx_txq.c  |   4 +-
- .../aic8800/aic8800_fdrv/rwnx_utils.h         |   6 -
- .../aic8800/aic8800_fdrv/rwnx_version_gen.h   |   2 +-
- .../wireless/aic8800/aic_load_fw/.gitignore   |  11 +
- .../net/wireless/aic8800/aic_load_fw/Makefile |   7 +-
- .../aic8800/aic_load_fw/aic_bluetooth_main.c  |   8 +
- .../aic8800/aic_load_fw/aic_compat_8800d80.c  | 111 ++-
- .../aic8800/aic_load_fw/aic_compat_8800d80.h  |   5 +
- .../aic8800/aic_load_fw/aicbluetooth.c        | 164 ++++-
- .../aic8800/aic_load_fw/aicbluetooth.h        |   1 +
- .../aic8800/aic_load_fw/aicbluetooth_cmds.c   |   1 -
- .../aic8800/aic_load_fw/aicwf_rx_prealloc.c   |   7 +-
- .../aic8800/aic_load_fw/aicwf_txq_prealloc.c  |   2 +-
- .../wireless/aic8800/aic_load_fw/aicwf_usb.c  |  96 ++-
- .../wireless/aic8800/aic_load_fw/aicwf_usb.h  |  36 +-
- .../aic8800/aic_load_fw/rwnx_version_gen.h    |   2 +-
- 43 files changed, 2625 insertions(+), 425 deletions(-)
- mode change 100755 => 100644 drivers/bluetooth/aic_btusb.c
- mode change 100755 => 100644 drivers/bluetooth/aic_btusb.h
- create mode 100644 drivers/net/wireless/aic8800/aic8800_fdrv/.gitignore
- create mode 100644 drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_tcp_ack.c
- create mode 100644 drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_tcp_ack.h
- create mode 100644 drivers/net/wireless/aic8800/aic_load_fw/.gitignore
 
 diff --git a/drivers/bluetooth/aic_btusb.c b/drivers/bluetooth/aic_btusb.c
 old mode 100755
@@ -5032,5 +4981,5 @@ index 02c315580..5de5fc50e 100644
 -#define RELEASE_DATE "2023_0904_1726"
 +#define RELEASE_DATE "2023_1212_15dcf017"
 -- 
-2.34.1
+2.17.1
 

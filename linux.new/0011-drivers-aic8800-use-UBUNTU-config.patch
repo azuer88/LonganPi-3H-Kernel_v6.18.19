@@ -1,11 +1,8 @@
 From 9b4fb98d4b70c3a8ece8359f1bb7dba828b1184c Mon Sep 17 00:00:00 2001
 From: Lu Hui <luhui@sipeed.com>
 Date: Tue, 7 Nov 2023 16:01:01 +0800
-Subject: [PATCH 11/48] drivers: aic8800: use UBUNTU config
+Subject: [PATCH 11/56] drivers: aic8800: use UBUNTU config
 
----
- drivers/net/wireless/aic8800/aic_load_fw/Makefile | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/net/wireless/aic8800/aic_load_fw/Makefile b/drivers/net/wireless/aic8800/aic_load_fw/Makefile
 index 330dc3456..6a94b3c5e 100644
@@ -25,5 +22,5 @@ index 330dc3456..6a94b3c5e 100644
  CONFIG_AIC_LOADFW_SUPPORT = m
  MODULE_NAME = aic_load_fw
 -- 
-2.34.1
+2.17.1
 

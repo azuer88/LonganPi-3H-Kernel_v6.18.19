@@ -1,11 +1,8 @@
 From 87b847fba1d94c26204fc83097415ee4328880c1 Mon Sep 17 00:00:00 2001
 From: Tiandi Zhou <zhoutiandi@sipeed.com>
 Date: Fri, 26 Jan 2024 16:27:03 +0800
-Subject: [PATCH 20/48] longanpi_3h_defconfig: add some usb gadgets configs
+Subject: [PATCH 20/56] longanpi_3h_defconfig: add some usb gadgets configs
 
----
- arch/arm64/configs/longanpi_3h_defconfig | 69 +++++++++++++++++++++---
- 1 file changed, 61 insertions(+), 8 deletions(-)
 
 diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
 index fab082fe0..9db56587c 100644
@@ -130,5 +127,5 @@ index fab082fe0..9db56587c 100644
  
  # CONFIG_MISC_FILESYSTEMS is not set
 -- 
-2.34.1
+2.17.1
 

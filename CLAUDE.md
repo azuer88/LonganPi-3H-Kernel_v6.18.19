@@ -87,8 +87,8 @@ The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`, making the 
 
 ### Kernel source (`build/linux`)
 - Base: Linux 6.18.19 (commit `4aea1dc4c`)
-- 51 patches applied; current HEAD: `f5ff53734`
-- Patch files: `linux.new/0001-*.patch` … `0051-*.patch`
+- 56 patches applied; current HEAD: `887285633`
+- Patch files: `linux.new/0001-*.patch` … `0056-*.patch`
 - Full apply history: `linux.new/STATUS.md`
 - Config: `arch/arm64/configs/longanpi_3h_defconfig`
 - To revert all patches: `cd build/linux && git reset --hard 4aea1dc4c`
@@ -96,7 +96,9 @@ The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`, making the 
 Notable patches:
 - `0048` — H616/DE33 display (ported to 6.18 API); required for HDMI output
 - `0050` — Cedrus H264/HEVC hardware VPU (H616 SRAM C1 mapping)
-- `0051` — DTS fix: H616 VE GIC interrupt SPI 89→93 (enables interrupt-driven decode, 8.7× faster than software)
+- `0054` — cedrus/dts: fix H616 VE GIC interrupt SPI 89→93; restore upstream watchdog
+- `0055` — dts: constrain CMA pool below 4 GB (sun4i DMA_BIT_MASK(32) fix for HDMI display)
+- `0056` — defconfig: add HDMI I2S audio drivers
 
 ### Board-specific notes (lpi3h-f1a0)
 - Serial console: `/dev/ttyUSB0` at 115200 baud

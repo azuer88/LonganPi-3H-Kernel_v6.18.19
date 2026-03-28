@@ -1,12 +1,9 @@
 From 066a3bce9bf1e644515c327591bd77989c83351f Mon Sep 17 00:00:00 2001
 From: Lu Hui <luhui@sipeed.com>
 Date: Thu, 28 Mar 2024 18:22:30 +0800
-Subject: [PATCH 27/48] longanpi_3h_defconfig: enable some feature use for
+Subject: [PATCH 27/56] longanpi_3h_defconfig: enable some feature use for
  lpi3h cluster
 
----
- arch/arm64/configs/longanpi_3h_defconfig | 47 ++++++++++++++++++------
- 1 file changed, 35 insertions(+), 12 deletions(-)
 
 diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
 index 614fe0ed5..164795864 100644
@@ -114,5 +111,5 @@ index 614fe0ed5..164795864 100644
  CONFIG_NLS_DEFAULT="utf8"
  CONFIG_NLS_CODEPAGE_437=y
 -- 
-2.34.1
+2.17.1
 

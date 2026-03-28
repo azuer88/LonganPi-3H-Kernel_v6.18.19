@@ -1,19 +1,15 @@
 From 66ba590d611bd84917989fbe4a6cc1ec02c86ce5 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 05:13:16 +0000
-Subject: [PATCH 41/48] dts: remove duplicate vendor iommu and ve nodes
+Subject: [PATCH 41/56] dts: remove duplicate vendor iommu and ve nodes
  conflicting with upstream
 
----
- .../arm64/boot/dts/allwinner/sun50i-h616.dtsi | 28 -------------------
- .../dts/allwinner/sun50i-h618-longanpi-3h.dts |  9 ------
- 2 files changed, 37 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 index e67613664..853730bf8 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-@@ -228,34 +228,6 @@ mixer0_out_tcon_top_mixer0: endpoint {
+@@ -228,34 +228,6 @@
  			};
  		};
  
@@ -52,7 +48,7 @@ diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/ar
 index c7a449dec..f072f2ae5 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
-@@ -19,8 +19,6 @@ aliases {
+@@ -19,8 +19,6 @@
  		ethernet0 = &emac0;
  		ethernet1 = &emac1;
  		serial0 = &uart0;
@@ -61,7 +57,7 @@ index c7a449dec..f072f2ae5 100644
  	};
  
  	chosen {
-@@ -204,14 +202,7 @@ &uart1 {
+@@ -204,14 +202,7 @@
  	status = "okay";
  };
  
@@ -77,5 +73,5 @@ index c7a449dec..f072f2ae5 100644
  &spi1 {
  	pinctrl-0 = <&spi1_pins>, <&spi1_cs0_pin>;
 -- 
-2.34.1
+2.17.1
 

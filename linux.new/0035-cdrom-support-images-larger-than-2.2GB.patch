@@ -1,13 +1,8 @@
 From b495ca0906159b92ad9fa764e4952ff1969ca4f7 Mon Sep 17 00:00:00 2001
 From: 916BGAI <zhangjian@sipeed.com>
 Date: Mon, 31 Mar 2025 17:00:59 +0800
-Subject: [PATCH 35/48] cdrom support images larger than 2.2GB
+Subject: [PATCH 35/56] cdrom support images larger than 2.2GB
 
----
- drivers/usb/gadget/function/f_mass_storage.c | 396 ++++++++++++++++++-
- drivers/usb/gadget/function/storage_common.c |  56 ++-
- drivers/usb/gadget/function/storage_common.h |  18 +
- 3 files changed, 444 insertions(+), 26 deletions(-)
 
 diff --git a/drivers/usb/gadget/function/f_mass_storage.c b/drivers/usb/gadget/function/f_mass_storage.c
 index 6f275c3d1..77c2d0bbf 100644
@@ -649,5 +644,5 @@ index 11ac785d5..0f8b6c885 100644
  			       const char *buf, size_t count);
  
 -- 
-2.34.1
+2.17.1
 

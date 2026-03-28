@@ -16,8 +16,8 @@
 
 ---
 
-## Applied (49 commits on top of 6.18.19 base: 4aea1dc4c)
-All patches applied except 0048. Current HEAD: daf080d2a8dd
+## Applied (56 commits on top of 6.18.19 base: 4aea1dc4c)
+All patches applied except 0048. Current HEAD: 887285633
 
   829bec518  add lpi3h defconfig                                    ← 0002
   6af6b6e0f  de33 ccu support                                       ← 0010 (fuzz)
@@ -66,6 +66,14 @@ All patches applied except 0048. Current HEAD: daf080d2a8dd
   ddbc50278  build: add cfg80211_cac_event link_id compat          ← build fix
   8b4f9633a  build: fix MODULE_IMPORT_NS string syntax in aic_btusb← build fix
   a0dc0f272  build: fix pwm-sunxi-enhance for 6.18 pwm_chip API   ← build fix
+  daf080d2a  aic8800: suppress CAUTION regulatory log message      ← 0049
+  bc1ba6f12  cedrus: add H616/H618 VPU support with SRAM C1       ← 0050
+  3c90865b8  cedrus: reduce watchdog polling interval to 5ms       ← 0051
+  b761887ef  cedrus: reduce watchdog to 0ms (immediate work queue) ← 0052
+  882f27c40  cedrus: watchdog back to 5ms (best practical HZ=100)  ← 0053
+  888837b51  cedrus/dts: fix H616 VE interrupt GIC SPI 89→93      ← 0054
+  dccc300f5  dts: constrain CMA pool below 4 GB (sun4i DMA32)     ← 0055
+  887285633  defconfig: add HDMI I2S audio drivers                 ← 0056
 
 Manual fix notes:
   *  0043: PG17/PG18 pin order in h616.dtsi; uart1 pinctrl-names in LPI3H DTS
@@ -163,13 +171,16 @@ Display pipeline confirmed working on device lpi3h-f1a0 (2026-03-27):
 ---
 
 ## Build output
-Successfully produced .deb packages at /home/ubuntu/Projects/test/LonganPi-3H-SDK/build/:
-- linux-image-6.18.19+_6.18.19-gdaf080d2a8dd-12_arm64.deb
-- linux-headers-6.18.19+_6.18.19-gdaf080d2a8dd-12_arm64.deb
-- linux-libc-dev_6.18.19-gdaf080d2a8dd-12_arm64.deb
+Successfully produced .deb packages at /extra/LPI3H/LonganPi-3H-SDK/build/:
+- linux-image-6.18.19_6.18.19-25_arm64.deb
+- linux-headers-6.18.19_6.18.19-25_arm64.deb
 
-Built from: longanpi_3h_defconfig
-Installed on lpi3h-f1a0 (2026-03-28), verified working.
+Built from: longanpi_3h_defconfig (clean build)
+Installed on lpi3h-f1a0 (2026-03-29), verified working:
+- Panfrost Mali-G31 probes at 432 MHz (CONFIG_SUN50I_H6_PRCM_PPU=y required)
+- HDMI display at 1280x720@60 via sun4i KMS
+- mpv --vo=gpu with Panfrost renders 1280x720 H264 @ 30fps in real time
+- kmscube confirms OpenGL ES 3.1 / Mali-G31 (Panfrost) pipeline
 
 ## Device configuration (lpi3h-f1a0)
 - /etc/default/u-boot: video=HDMI-A-1:1280x720@60 (force mode for power-saving monitors)
