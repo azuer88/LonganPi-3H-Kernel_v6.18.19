@@ -1,0 +1,497 @@
+From 6af6b6e0f6b355da5631b8772cc317fb0d1c3cd0 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Wed, 25 Mar 2026 04:42:31 +0000
+Subject: [PATCH 02/48] de33 ccu support
+
+---
+ drivers/clk/sunxi-ng/Kconfig          |   4 +
+ drivers/clk/sunxi-ng/Kconfig.orig     | 136 +++++++++++++++++++
+ drivers/clk/sunxi-ng/Makefile         |   2 +
+ drivers/clk/sunxi-ng/Makefile.orig    |  81 ++++++++++++
+ drivers/clk/sunxi-ng/ccu-sun8i-de33.c | 181 ++++++++++++++++++++++++++
+ drivers/clk/sunxi-ng/ccu-sun8i-de33.h |  19 +++
+ 6 files changed, 423 insertions(+)
+ create mode 100644 drivers/clk/sunxi-ng/Kconfig.orig
+ create mode 100644 drivers/clk/sunxi-ng/Makefile.orig
+ create mode 100644 drivers/clk/sunxi-ng/ccu-sun8i-de33.c
+ create mode 100644 drivers/clk/sunxi-ng/ccu-sun8i-de33.h
+
+diff --git a/drivers/clk/sunxi-ng/Kconfig b/drivers/clk/sunxi-ng/Kconfig
+index 6af2d020e..d02832170 100644
+--- a/drivers/clk/sunxi-ng/Kconfig
++++ b/drivers/clk/sunxi-ng/Kconfig
+@@ -118,6 +118,10 @@ config SUN8I_DE2_CCU
+ 	default ARCH_SUNXI
+ 	depends on MACH_SUN8I || ARM64 || RISCV || COMPILE_TEST
+ 
++config SUN8I_DE33_CCU
++	tristate "Support for the Allwinner SoCs DE3.3 CCU"
++	default MACH_SUN8I || (ARM64 && ARCH_SUNXI)
++
+ config SUN8I_R40_CCU
+ 	tristate "Support for the Allwinner R40 CCU"
+ 	default ARCH_SUNXI
+diff --git a/drivers/clk/sunxi-ng/Kconfig.orig b/drivers/clk/sunxi-ng/Kconfig.orig
+new file mode 100644
+index 000000000..6af2d020e
+--- /dev/null
++++ b/drivers/clk/sunxi-ng/Kconfig.orig
+@@ -0,0 +1,136 @@
++# SPDX-License-Identifier: GPL-2.0-only
++config SUNXI_CCU
++	tristate "Clock support for Allwinner SoCs"
++	depends on ARCH_SUNXI || COMPILE_TEST
++	select RESET_CONTROLLER
++	default ARCH_SUNXI
++
++if SUNXI_CCU
++
++config SUNIV_F1C100S_CCU
++	tristate "Support for the Allwinner newer F1C100s CCU"
++	default ARCH_SUNXI
++	depends on MACH_SUNIV || COMPILE_TEST
++
++config SUN20I_D1_CCU
++	tristate "Support for the Allwinner D1/R528/T113 CCU"
++	default ARCH_SUNXI
++	depends on MACH_SUN8I || RISCV || COMPILE_TEST
++
++config SUN20I_D1_R_CCU
++	tristate "Support for the Allwinner D1/R528/T113 PRCM CCU"
++	default ARCH_SUNXI
++	depends on MACH_SUN8I || RISCV || COMPILE_TEST
++
++config SUN50I_A64_CCU
++	tristate "Support for the Allwinner A64 CCU"
++	default ARCH_SUNXI
++	depends on ARM64 || COMPILE_TEST
++
++config SUN50I_A100_CCU
++	tristate "Support for the Allwinner A100 CCU"
++	default ARCH_SUNXI
++	depends on ARM64 || COMPILE_TEST
++
++config SUN50I_A100_R_CCU
++	tristate "Support for the Allwinner A100 PRCM CCU"
++	default ARCH_SUNXI
++	depends on ARM64 || COMPILE_TEST
++
++config SUN50I_H6_CCU
++	tristate "Support for the Allwinner H6 CCU"
++	default ARCH_SUNXI
++	depends on ARM64 || COMPILE_TEST
++
++config SUN50I_H616_CCU
++	tristate "Support for the Allwinner H616 CCU"
++	default ARCH_SUNXI
++	depends on ARM64 || COMPILE_TEST
++
++config SUN50I_H6_R_CCU
++	tristate "Support for the Allwinner H6 and H616 PRCM CCU"
++	default ARCH_SUNXI
++	depends on ARM64 || COMPILE_TEST
++
++config SUN55I_A523_CCU
++	tristate "Support for the Allwinner A523/T527 CCU"
++	default ARCH_SUNXI
++	depends on ARM64 || COMPILE_TEST
++
++config SUN55I_A523_MCU_CCU
++	tristate "Support for the Allwinner A523/T527 MCU CCU"
++	default ARCH_SUNXI
++	depends on ARM64 || COMPILE_TEST
++
++config SUN55I_A523_R_CCU
++	tristate "Support for the Allwinner A523/T527 PRCM CCU"
++	default ARCH_SUNXI
++	depends on ARM64 || COMPILE_TEST
++
++config SUN4I_A10_CCU
++	tristate "Support for the Allwinner A10/A20 CCU"
++	default ARCH_SUNXI
++	depends on MACH_SUN4I || MACH_SUN7I || COMPILE_TEST
++
++config SUN5I_CCU
++	bool "Support for the Allwinner sun5i family CCM"
++	default ARCH_SUNXI
++	depends on MACH_SUN5I || COMPILE_TEST
++	depends on SUNXI_CCU=y
++
++config SUN6I_A31_CCU
++	tristate "Support for the Allwinner A31/A31s CCU"
++	default ARCH_SUNXI
++	depends on MACH_SUN6I || COMPILE_TEST
++
++config SUN6I_RTC_CCU
++	tristate "Support for the Allwinner H616/R329 RTC CCU"
++	default ARCH_SUNXI
++	depends on MACH_SUN8I || ARM64 || RISCV || COMPILE_TEST
++
++config SUN8I_A23_CCU
++	tristate "Support for the Allwinner A23 CCU"
++	default ARCH_SUNXI
++	depends on MACH_SUN8I || COMPILE_TEST
++
++config SUN8I_A33_CCU
++	tristate "Support for the Allwinner A33 CCU"
++	default ARCH_SUNXI
++	depends on MACH_SUN8I || COMPILE_TEST
++
++config SUN8I_A83T_CCU
++	tristate "Support for the Allwinner A83T CCU"
++	default ARCH_SUNXI
++	depends on MACH_SUN8I || COMPILE_TEST
++
++config SUN8I_H3_CCU
++	tristate "Support for the Allwinner H3 CCU"
++	default ARCH_SUNXI
++	depends on MACH_SUN8I || ARM64 || COMPILE_TEST
++
++config SUN8I_V3S_CCU
++	tristate "Support for the Allwinner V3s CCU"
++	default ARCH_SUNXI
++	depends on MACH_SUN8I || COMPILE_TEST
++
++config SUN8I_DE2_CCU
++	tristate "Support for the Allwinner SoCs DE2 CCU"
++	default ARCH_SUNXI
++	depends on MACH_SUN8I || ARM64 || RISCV || COMPILE_TEST
++
++config SUN8I_R40_CCU
++	tristate "Support for the Allwinner R40 CCU"
++	default ARCH_SUNXI
++	depends on MACH_SUN8I || COMPILE_TEST
++
++config SUN9I_A80_CCU
++	tristate "Support for the Allwinner A80 CCU"
++	default ARCH_SUNXI
++	depends on MACH_SUN9I || COMPILE_TEST
++
++config SUN8I_R_CCU
++	tristate "Support for Allwinner SoCs' PRCM CCUs"
++	default ARCH_SUNXI
++	depends on MACH_SUN8I || ARM64 || COMPILE_TEST
++
++endif
+diff --git a/drivers/clk/sunxi-ng/Makefile b/drivers/clk/sunxi-ng/Makefile
+index a1c4087d7..d8a1a34b6 100644
+--- a/drivers/clk/sunxi-ng/Makefile
++++ b/drivers/clk/sunxi-ng/Makefile
+@@ -47,6 +47,7 @@ obj-$(CONFIG_SUN8I_H3_CCU)	+= sun8i-h3-ccu.o
+ obj-$(CONFIG_SUN8I_R40_CCU)	+= sun8i-r40-ccu.o
+ obj-$(CONFIG_SUN8I_V3S_CCU)	+= sun8i-v3s-ccu.o
+ obj-$(CONFIG_SUN8I_DE2_CCU)	+= sun8i-de2-ccu.o
++obj-$(CONFIG_SUN8I_DE33_CCU)	+= sun8i-de33-ccu.o
+ obj-$(CONFIG_SUN8I_R_CCU)	+= sun8i-r-ccu.o
+ obj-$(CONFIG_SUN9I_A80_CCU)	+= sun9i-a80-ccu.o
+ obj-$(CONFIG_SUN9I_A80_CCU)	+= sun9i-a80-de-ccu.o
+@@ -75,6 +76,7 @@ sun8i-h3-ccu-y			+= ccu-sun8i-h3.o
+ sun8i-r40-ccu-y			+= ccu-sun8i-r40.o
+ sun8i-v3s-ccu-y			+= ccu-sun8i-v3s.o
+ sun8i-de2-ccu-y			+= ccu-sun8i-de2.o
++sun8i-de33-ccu-y		+= ccu-sun8i-de33.o
+ sun8i-r-ccu-y			+= ccu-sun8i-r.o
+ sun9i-a80-ccu-y			+= ccu-sun9i-a80.o
+ sun9i-a80-de-ccu-y		+= ccu-sun9i-a80-de.o
+diff --git a/drivers/clk/sunxi-ng/Makefile.orig b/drivers/clk/sunxi-ng/Makefile.orig
+new file mode 100644
+index 000000000..a1c4087d7
+--- /dev/null
++++ b/drivers/clk/sunxi-ng/Makefile.orig
+@@ -0,0 +1,81 @@
++# SPDX-License-Identifier: GPL-2.0
++
++obj-$(CONFIG_SUNXI_CCU)		+= sunxi-ccu.o
++
++# Common objects
++sunxi-ccu-y			+= ccu_common.o
++sunxi-ccu-y			+= ccu_mmc_timing.o
++sunxi-ccu-y			+= ccu_reset.o
++
++# Base clock types
++sunxi-ccu-y			+= ccu_div.o
++sunxi-ccu-y			+= ccu_frac.o
++sunxi-ccu-y			+= ccu_gate.o
++sunxi-ccu-y			+= ccu_mux.o
++sunxi-ccu-y			+= ccu_mult.o
++sunxi-ccu-y			+= ccu_phase.o
++sunxi-ccu-y			+= ccu_sdm.o
++
++# Multi-factor clocks
++sunxi-ccu-y			+= ccu_nk.o
++sunxi-ccu-y			+= ccu_nkm.o
++sunxi-ccu-y			+= ccu_nkmp.o
++sunxi-ccu-y			+= ccu_nm.o
++sunxi-ccu-y			+= ccu_mp.o
++
++# SoC support
++obj-$(CONFIG_SUNIV_F1C100S_CCU)	+= suniv-f1c100s-ccu.o
++obj-$(CONFIG_SUN20I_D1_CCU)	+= sun20i-d1-ccu.o
++obj-$(CONFIG_SUN20I_D1_R_CCU)	+= sun20i-d1-r-ccu.o
++obj-$(CONFIG_SUN50I_A64_CCU)	+= sun50i-a64-ccu.o
++obj-$(CONFIG_SUN50I_A100_CCU)	+= sun50i-a100-ccu.o
++obj-$(CONFIG_SUN50I_A100_R_CCU)	+= sun50i-a100-r-ccu.o
++obj-$(CONFIG_SUN50I_H6_CCU)	+= sun50i-h6-ccu.o
++obj-$(CONFIG_SUN50I_H6_R_CCU)	+= sun50i-h6-r-ccu.o
++obj-$(CONFIG_SUN50I_H616_CCU)	+= sun50i-h616-ccu.o
++obj-$(CONFIG_SUN55I_A523_CCU)	+= sun55i-a523-ccu.o
++obj-$(CONFIG_SUN55I_A523_MCU_CCU)	+= sun55i-a523-mcu-ccu.o
++obj-$(CONFIG_SUN55I_A523_R_CCU)	+= sun55i-a523-r-ccu.o
++obj-$(CONFIG_SUN4I_A10_CCU)	+= sun4i-a10-ccu.o
++obj-$(CONFIG_SUN5I_CCU)		+= sun5i-ccu.o
++obj-$(CONFIG_SUN6I_A31_CCU)	+= sun6i-a31-ccu.o
++obj-$(CONFIG_SUN6I_RTC_CCU)	+= sun6i-rtc-ccu.o
++obj-$(CONFIG_SUN8I_A23_CCU)	+= sun8i-a23-ccu.o
++obj-$(CONFIG_SUN8I_A33_CCU)	+= sun8i-a33-ccu.o
++obj-$(CONFIG_SUN8I_A83T_CCU)	+= sun8i-a83t-ccu.o
++obj-$(CONFIG_SUN8I_H3_CCU)	+= sun8i-h3-ccu.o
++obj-$(CONFIG_SUN8I_R40_CCU)	+= sun8i-r40-ccu.o
++obj-$(CONFIG_SUN8I_V3S_CCU)	+= sun8i-v3s-ccu.o
++obj-$(CONFIG_SUN8I_DE2_CCU)	+= sun8i-de2-ccu.o
++obj-$(CONFIG_SUN8I_R_CCU)	+= sun8i-r-ccu.o
++obj-$(CONFIG_SUN9I_A80_CCU)	+= sun9i-a80-ccu.o
++obj-$(CONFIG_SUN9I_A80_CCU)	+= sun9i-a80-de-ccu.o
++obj-$(CONFIG_SUN9I_A80_CCU)	+= sun9i-a80-usb-ccu.o
++
++suniv-f1c100s-ccu-y		+= ccu-suniv-f1c100s.o
++sun20i-d1-ccu-y			+= ccu-sun20i-d1.o
++sun20i-d1-r-ccu-y		+= ccu-sun20i-d1-r.o
++sun50i-a64-ccu-y		+= ccu-sun50i-a64.o
++sun50i-a100-ccu-y		+= ccu-sun50i-a100.o
++sun50i-a100-r-ccu-y		+= ccu-sun50i-a100-r.o
++sun50i-h6-ccu-y			+= ccu-sun50i-h6.o
++sun50i-h6-r-ccu-y		+= ccu-sun50i-h6-r.o
++sun50i-h616-ccu-y		+= ccu-sun50i-h616.o
++sun55i-a523-ccu-y		+= ccu-sun55i-a523.o
++sun55i-a523-mcu-ccu-y		+= ccu-sun55i-a523-mcu.o
++sun55i-a523-r-ccu-y		+= ccu-sun55i-a523-r.o
++sun4i-a10-ccu-y			+= ccu-sun4i-a10.o
++sun5i-ccu-y			+= ccu-sun5i.o
++sun6i-a31-ccu-y			+= ccu-sun6i-a31.o
++sun6i-rtc-ccu-y			+= ccu-sun6i-rtc.o
++sun8i-a23-ccu-y			+= ccu-sun8i-a23.o
++sun8i-a33-ccu-y			+= ccu-sun8i-a33.o
++sun8i-a83t-ccu-y		+= ccu-sun8i-a83t.o
++sun8i-h3-ccu-y			+= ccu-sun8i-h3.o
++sun8i-r40-ccu-y			+= ccu-sun8i-r40.o
++sun8i-v3s-ccu-y			+= ccu-sun8i-v3s.o
++sun8i-de2-ccu-y			+= ccu-sun8i-de2.o
++sun8i-r-ccu-y			+= ccu-sun8i-r.o
++sun9i-a80-ccu-y			+= ccu-sun9i-a80.o
++sun9i-a80-de-ccu-y		+= ccu-sun9i-a80-de.o
++sun9i-a80-usb-ccu-y		+= ccu-sun9i-a80-usb.o
+diff --git a/drivers/clk/sunxi-ng/ccu-sun8i-de33.c b/drivers/clk/sunxi-ng/ccu-sun8i-de33.c
+new file mode 100644
+index 000000000..fa5b1cf62
+--- /dev/null
++++ b/drivers/clk/sunxi-ng/ccu-sun8i-de33.c
+@@ -0,0 +1,181 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c) 2017 Icenowy Zheng <icenowy@aosc.io>
++ */
++
++#include <linux/clk.h>
++#include <linux/clk-provider.h>
++#include <linux/of_address.h>
++#include <linux/of_platform.h>
++#include <linux/platform_device.h>
++#include <linux/reset.h>
++
++#include "ccu_common.h"
++#include "ccu_div.h"
++#include "ccu_gate.h"
++#include "ccu_reset.h"
++
++#include "ccu-sun8i-de33.h"
++
++static SUNXI_CCU_GATE(bus_mixer0_clk,	"bus-mixer0",	"bus-de",
++		      0x04, BIT(0), 0);
++static SUNXI_CCU_GATE(bus_mixer1_clk,	"bus-mixer1",	"bus-de",
++		      0x04, BIT(1), 0);
++static SUNXI_CCU_GATE(bus_wb_clk,	"bus-wb",	"bus-de",
++		      0x04, BIT(2), 0);
++
++static SUNXI_CCU_GATE(mixer0_clk,	"mixer0",	"mixer0-div",
++		      0x00, BIT(0), CLK_SET_RATE_PARENT);
++static SUNXI_CCU_GATE(mixer1_clk,	"mixer1",	"mixer1-div",
++		      0x00, BIT(1), CLK_SET_RATE_PARENT);
++static SUNXI_CCU_GATE(wb_clk,		"wb",		"wb-div",
++		      0x00, BIT(2), CLK_SET_RATE_PARENT);
++
++static SUNXI_CCU_M(mixer0_div_clk, "mixer0-div", "de", 0x0c, 0, 4,
++		   CLK_SET_RATE_PARENT);
++static SUNXI_CCU_M(mixer1_div_clk, "mixer1-div", "de", 0x0c, 4, 4,
++		   CLK_SET_RATE_PARENT);
++static SUNXI_CCU_M(wb_div_clk, "wb-div", "de", 0x0c, 8, 4,
++		   CLK_SET_RATE_PARENT);
++
++static struct ccu_common *sun50i_h616_de33_clks[] = {
++	&mixer0_clk.common,
++	&mixer1_clk.common,
++	&wb_clk.common,
++
++	&bus_mixer0_clk.common,
++	&bus_mixer1_clk.common,
++	&bus_wb_clk.common,
++
++	&mixer0_div_clk.common,
++	&mixer1_div_clk.common,
++	&wb_div_clk.common,
++};
++
++static struct clk_hw_onecell_data sun50i_h616_de33_hw_clks = {
++	.hws	= {
++		[CLK_MIXER0]		= &mixer0_clk.common.hw,
++		[CLK_MIXER1]		= &mixer1_clk.common.hw,
++		[CLK_WB]		= &wb_clk.common.hw,
++
++		[CLK_BUS_MIXER0]	= &bus_mixer0_clk.common.hw,
++		[CLK_BUS_MIXER1]	= &bus_mixer1_clk.common.hw,
++		[CLK_BUS_WB]		= &bus_wb_clk.common.hw,
++
++		[CLK_MIXER0_DIV]	= &mixer0_div_clk.common.hw,
++		[CLK_MIXER1_DIV]	= &mixer1_div_clk.common.hw,
++		[CLK_WB_DIV]		= &wb_div_clk.common.hw,
++	},
++	.num	= CLK_NUMBER,
++};
++
++static struct ccu_reset_map sun50i_h616_de33_resets[] = {
++	[RST_MIXER0]	= { 0x08, BIT(0) },
++	[RST_MIXER1]	= { 0x08, BIT(1) },
++	[RST_WB]	= { 0x08, BIT(2) },
++};
++
++static const struct sunxi_ccu_desc sun50i_h616_de33_clk_desc = {
++	.ccu_clks	= sun50i_h616_de33_clks,
++	.num_ccu_clks	= ARRAY_SIZE(sun50i_h616_de33_clks),
++
++	.hw_clks	= &sun50i_h616_de33_hw_clks,
++
++	.resets		= sun50i_h616_de33_resets,
++	.num_resets	= ARRAY_SIZE(sun50i_h616_de33_resets),
++};
++
++static int sunxi_de33_clk_probe(struct platform_device *pdev)
++{
++	struct resource *res;
++	struct clk *bus_clk, *mod_clk;
++	struct reset_control *rstc;
++	void __iomem *reg;
++	const struct sunxi_ccu_desc *ccu_desc;
++	int ret;
++
++	ccu_desc = of_device_get_match_data(&pdev->dev);
++	if (!ccu_desc)
++		return -EINVAL;
++
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	reg = devm_ioremap_resource(&pdev->dev, res);
++	if (IS_ERR(reg))
++		return PTR_ERR(reg);
++
++	bus_clk = devm_clk_get(&pdev->dev, "bus");
++	if (IS_ERR(bus_clk)) {
++		ret = PTR_ERR(bus_clk);
++		if (ret != -EPROBE_DEFER)
++			dev_err(&pdev->dev, "Couldn't get bus clk: %d\n", ret);
++		return ret;
++	}
++
++	mod_clk = devm_clk_get(&pdev->dev, "mod");
++	if (IS_ERR(mod_clk)) {
++		ret = PTR_ERR(mod_clk);
++		if (ret != -EPROBE_DEFER)
++			dev_err(&pdev->dev, "Couldn't get mod clk: %d\n", ret);
++		return ret;
++	}
++
++	rstc = devm_reset_control_get_exclusive(&pdev->dev, NULL);
++	if (IS_ERR(rstc)) {
++		ret = PTR_ERR(rstc);
++		if (ret != -EPROBE_DEFER)
++			dev_err(&pdev->dev,
++				"Couldn't get reset control: %d\n", ret);
++		return ret;
++	}
++
++	/* The clocks need to be enabled for us to access the registers */
++	ret = clk_prepare_enable(bus_clk);
++	if (ret) {
++		dev_err(&pdev->dev, "Couldn't enable bus clk: %d\n", ret);
++		return ret;
++	}
++
++	ret = clk_prepare_enable(mod_clk);
++	if (ret) {
++		dev_err(&pdev->dev, "Couldn't enable mod clk: %d\n", ret);
++		goto err_disable_bus_clk;
++	}
++
++	/* The reset control needs to be asserted for the controls to work */
++	ret = reset_control_deassert(rstc);
++	if (ret) {
++		dev_err(&pdev->dev,
++			"Couldn't deassert reset control: %d\n", ret);
++		goto err_disable_mod_clk;
++	}
++
++	writel(0, reg + 0x24);
++	writel(0x0000A980, reg + 0x28);
++
++	of_sunxi_ccu_probe(pdev->dev.of_node, reg, ccu_desc);
++
++	return 0;
++
++err_disable_mod_clk:
++	clk_disable_unprepare(mod_clk);
++err_disable_bus_clk:
++	clk_disable_unprepare(bus_clk);
++	return ret;
++}
++
++static const struct of_device_id sunxi_de33_clk_ids[] = {
++	{
++		.compatible = "allwinner,sun50i-h616-de33-clk",
++		.data = &sun50i_h616_de33_clk_desc,
++	},
++	{ }
++};
++
++static struct platform_driver sunxi_de33_clk_driver = {
++	.probe	= sunxi_de33_clk_probe,
++	.driver	= {
++		.name	= "sunxi-de33-clks",
++		.of_match_table	= sunxi_de33_clk_ids,
++	},
++};
++builtin_platform_driver(sunxi_de33_clk_driver);
+diff --git a/drivers/clk/sunxi-ng/ccu-sun8i-de33.h b/drivers/clk/sunxi-ng/ccu-sun8i-de33.h
+new file mode 100644
+index 000000000..83cbef5a3
+--- /dev/null
++++ b/drivers/clk/sunxi-ng/ccu-sun8i-de33.h
+@@ -0,0 +1,19 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++/*
++ * Copyright 2016 Icenowy Zheng <icenowy@aosc.io>
++ */
++
++#ifndef _CCU_SUN8I_DE2_H_
++#define _CCU_SUN8I_DE2_H_
++
++#include <dt-bindings/clock/sun8i-de2.h>
++#include <dt-bindings/reset/sun8i-de2.h>
++
++/* Intermediary clock dividers are not exported */
++#define CLK_MIXER0_DIV	3
++#define CLK_MIXER1_DIV	4
++#define CLK_WB_DIV	5
++
++#define CLK_NUMBER	(CLK_WB + 1)
++
++#endif /* _CCU_SUN8I_DE2_H_ */
+-- 
+2.34.1
+

@@ -8,11 +8,12 @@ if [ ! -e build/host_keys/$MACID ]; then
         ssh-keygen -A -f build/host_keys/$MACID 
 fi 
 
-cp build/host_keys/$MACID/etc/ssh/ssh_host_* $1/etc/ssh 
+mkdir -p "$1/etc/ssh"
+cp build/host_keys/$MACID/etc/ssh/ssh_host_* "$1/etc/ssh"
 
 echo "Current dir: $(pwd)"
 
 # ensure is owned by root
-chown root:root "$1/etc/ssh/ssh_host_*"
+chown root:root "$1"/etc/ssh/ssh_host_*
 
 echo "$0 done."

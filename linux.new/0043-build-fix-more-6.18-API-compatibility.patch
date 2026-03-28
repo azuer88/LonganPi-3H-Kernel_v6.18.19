@@ -1,0 +1,170 @@
+From 3e5d2ec713e8482f5d7a28109bd257a246fe19e2 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Wed, 25 Mar 2026 08:52:36 +0000
+Subject: [PATCH 43/48] build: fix more 6.18 API compatibility
+
+- flush_cache.h: remove asm-generic/export.h (no longer exists in 6.18)
+- rwnx_compat.h: add timer API compat (del_timer/del_timer_sync ->
+  timer_delete/timer_delete_sync, from_timer -> container_of) for 6.15+;
+  add cfg80211 link_id compat for 6.4+ (spurious/4addr frame callbacks)
+---
+ bsp/drivers/ve/cedar-ve/flush_cache.h         | 119 ++++++++++++++++++
+ .../aic8800/aic8800_fdrv/rwnx_compat.h        |  17 +++
+ 2 files changed, 136 insertions(+)
+ create mode 100644 bsp/drivers/ve/cedar-ve/flush_cache.h
+
+diff --git a/bsp/drivers/ve/cedar-ve/flush_cache.h b/bsp/drivers/ve/cedar-ve/flush_cache.h
+new file mode 100644
+index 000000000..15b3405f2
+--- /dev/null
++++ b/bsp/drivers/ve/cedar-ve/flush_cache.h
+@@ -0,0 +1,119 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ *
++ * Copyright (C) 1996-2000 Russell King
++ * Copyright (C) 2012 ARM Ltd.
++ */
++
++#ifndef __FLUSH_CACHE_H
++#define __FLUSH_CACHE_H
++
++
++#include <asm/asm-offsets.h>
++#include <asm/alternative.h>
++#include <asm/asm-bug.h>
++#include <asm/cpufeature.h>
++#include <asm/cputype.h>
++#include <asm/debug-monitors.h>
++#include <asm/page.h>
++#include <asm/pgtable-hwdef.h>
++#include <asm/ptrace.h>
++#include <asm/thread_info.h>
++#include <asm/sysreg.h>
++
++
++
++/*
++ * Based on arch/arm/include/asm/assembler.h, arch/arm/mm/proc-macros.S
++ * read_ctr - read CTR_EL0. If the system has mismatched register fields,
++ * provide the system wide safe value from arm64_ftr_reg_ctrel0.sys_val
++ */
++	.macro	read_ctr_aw, reg
++//#ifndef __KVM_NVHE_HYPERVISOR__
++//alternative_if_not ARM64_MISMATCHED_CACHE_TYPE
++	mrs	\reg, ctr_el0			/* read CTR */
++	nop
++//alternative_else
++	//mov x0, (((3) << 19) | ((3) << 16) | ((0) << 12) | ((0) << 8) | ((1) << 5))
++//	ldr x0, =SYS_CTR_EL0
++	/* mov x0, #1769504 */
++	/* ldr x0, =0x1b0020 */
++//	bl read_sanitised_ftr_reg
++//	ldr_l	\reg, x0
++	/* ldr_l	\reg, arm64_ftr_reg_ctrel0 + ARM64_FTR_SYSVAL */
++//alternative_endif
++//#else
++//alternative_if_not ARM64_KVM_PROTECTED_MODE
++//	ASM_BUG()
++//alternative_else_nop_endif
++//alternative_cb kvm_compute_final_ctr_el0
++//	movz	\reg, #0
++//	movk	\reg, #0, lsl #16
++//	movk	\reg, #0, lsl #32
++//	movk	\reg, #0, lsl #48
++//alternative_cb_end
++//#endif
++	.endm
++
++/*
++ * dcache_line_size - get the safe D-cache line size across all CPUs
++ */
++	.macro	dcache_line_size_aw, reg, tmp
++	read_ctr_aw	\tmp
++	ubfm		\tmp, \tmp, #16, #19	/* cache line size encoding */
++	mov		\reg, #4		/* bytes per word */
++	lsl		\reg, \reg, \tmp	/* actual cache line size */
++	.endm
++
++	.macro __dcache_op_workaround_clean_cache_aw, op, addr
++alternative_if_not ARM64_WORKAROUND_CLEAN_CACHE
++	dc	\op, \addr
++alternative_else
++	dc	civac, \addr
++alternative_endif
++	.endm
++
++/*
++ * Macro to perform a data cache maintenance for the interval
++ * [start, end)
++ *
++ * 	op:		operation passed to dc instruction
++ * 	domain:		domain used in dsb instruciton
++ * 	start:          starting virtual address of the region
++ * 	end:            end virtual address of the region
++ * 	fixup:		optional label to branch to on user fault
++ * 	Corrupts:       start, end, tmp1, tmp2
++ */
++	.macro dcache_by_line_op_aw op, domain, start, end, tmp1, tmp2, fixup
++	dcache_line_size_aw \tmp1, \tmp2
++	sub	\tmp2, \tmp1, #1
++	bic	\start, \start, \tmp2
++.Ldcache_op\@ :
++	.ifc	\op, cvau
++	__dcache_op_workaround_clean_cache_aw \op, \start
++	.else
++	.ifc	\op, cvac
++	__dcache_op_workaround_clean_cache_aw \op, \start
++	.else
++	.ifc	\op, cvap
++	sys	3, c7, c12, 1, \start	/* dc cvap */
++	.else
++	.ifc	\op, cvadp
++	sys	3, c7, c13, 1, \start	/* dc cvadp */
++	.else
++	dc	\op, \start
++	.endif
++	.endif
++	.endif
++	.endif
++	add	\start, \start, \tmp1
++	cmp	\start, \end
++	b.lo	.Ldcache_op\@
++	dsb	\domain
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
++	_cond_uaccess_extable .Ldcache_op\@, \fixup
++#else
++	_cond_extable .Ldcache_op\@, \fixup
++#endif
++	.endm
++#endif
+\ No newline at end of file
+diff --git a/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_compat.h b/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_compat.h
+index b85983532..d173b2875 100644
+--- a/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_compat.h
++++ b/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_compat.h
+@@ -425,4 +425,21 @@ enum {
+ typedef __s64 time64_t;
+ #endif
+ 
++
++/* Timer API changes in 6.15 */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
++#include <linux/timer.h>
++#define del_timer(t)        timer_delete(t)
++#define del_timer_sync(t)   timer_delete_sync(t)
++#define from_timer(var, callback_timer, timer_fieldname)     container_of(callback_timer, typeof(*var), timer_fieldname)
++#endif
++
++/* cfg80211 link_id added in 6.4 */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
++#define cfg80211_rx_spurious_frame(dev, addr, gfp)     cfg80211_rx_spurious_frame(dev, addr, 0, gfp)
++#define cfg80211_rx_unexpected_4addr_frame(dev, addr, gfp)     cfg80211_rx_unexpected_4addr_frame(dev, addr, 0, gfp)
++#endif
++
+ #endif /* _RWNX_COMPAT_H_ */
++
++/* Remove the existing #endif before adding new content */
+-- 
+2.34.1
+

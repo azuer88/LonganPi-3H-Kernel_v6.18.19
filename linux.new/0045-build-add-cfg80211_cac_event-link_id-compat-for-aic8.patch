@@ -1,0 +1,31 @@
+From ddbc502788c34025a1a9119c5e71236c329051f1 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Wed, 25 Mar 2026 09:09:25 +0000
+Subject: [PATCH 45/48] build: add cfg80211_cac_event link_id compat for
+ aic8800
+
+---
+ drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_compat.h | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_compat.h b/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_compat.h
+index d173b2875..507fac615 100644
+--- a/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_compat.h
++++ b/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_compat.h
+@@ -440,6 +440,13 @@ typedef __s64 time64_t;
+ #define cfg80211_rx_unexpected_4addr_frame(dev, addr, gfp)     cfg80211_rx_unexpected_4addr_frame(dev, addr, 0, gfp)
+ #endif
+ 
++
++/* cfg80211_cac_event got link_id param in 6.4 */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
++#undef cfg80211_cac_event
++#define cfg80211_cac_event(netdev, chandef, event, gfp)     cfg80211_cac_event(netdev, chandef, event, gfp, 0)
++#endif
++
+ #endif /* _RWNX_COMPAT_H_ */
+ 
+ /* Remove the existing #endif before adding new content */
+-- 
+2.34.1
+

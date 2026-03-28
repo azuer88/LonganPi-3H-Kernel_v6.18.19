@@ -7,10 +7,11 @@ else
 fi
 
 if [ -n "$TIMEZONE" ]; then
-    ln -s /etc/localtime ../usr/share/zoneinfo/$TIMEZONE
+    ln -sf "/usr/share/zoneinfo/$TIMEZONE" "$1/etc/localtime"
+    echo "Set timezone to $TIMEZONE"
 else
     echo "TIMEZONE not set, will not do anything."
-fi 
+fi
 
 echo "*** $TIMESYNCD_CONF ***"
 cat "$1$TIMESYNCD_CONF"

@@ -1,0 +1,110 @@
+From a0dc0f272edf9822c4120c9dd77f45782a4c33dc Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Wed, 25 Mar 2026 12:54:06 +0000
+Subject: [PATCH 47/48] build: fix pwm-sunxi-enhance for 6.18 pwm_chip API
+
+- chip->dev-> to chip->dev. (dev is now embedded struct device)
+- chip.dev.parent = &pdev->dev instead of chip.dev = &pdev->dev
+- Remove chip.base (field removed in 6.18)
+- Remove pwm-base DT property reading code
+- pwm->pwm - chip->base -> pwm->hwpwm (hwpwm is hw index)
+- void remove instead of int
+---
+ drivers/pwm/pwm-sunxi-enhance.c | 26 ++++++++------------------
+ 1 file changed, 8 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/pwm/pwm-sunxi-enhance.c b/drivers/pwm/pwm-sunxi-enhance.c
+index 7d452adcb..a098888dd 100644
+--- a/drivers/pwm/pwm-sunxi-enhance.c
++++ b/drivers/pwm/pwm-sunxi-enhance.c
+@@ -670,7 +670,7 @@ static int sunxi_pwm_enable_single(struct pwm_chip *chip, struct pwm_device *pwm
+     int ret;
+ 
+     index = pwm->hwpwm;
+-    sub_np = of_parse_phandle(chip->dev->of_node, "sunxi-pwms", index);
++    sub_np = of_parse_phandle(chip->dev.of_node, "sunxi-pwms", index);
+     if (IS_ERR_OR_NULL(sub_np))
+     {
+         pr_err("%s: can't parse \"sunxi-pwms\" property\n", __func__);
+@@ -716,7 +716,7 @@ static int sunxi_pwm_enable_dual(struct pwm_chip *chip, struct pwm_device *pwm,
+     pwm_index[1] = bind_num;
+ 
+     /*set current pwm pin state*/
+-    sub_np[0] = of_parse_phandle(chip->dev->of_node, "sunxi-pwms", pwm_index[0]);
++    sub_np[0] = of_parse_phandle(chip->dev.of_node, "sunxi-pwms", pwm_index[0]);
+     if (IS_ERR_OR_NULL(sub_np[0]))
+     {
+         pr_err("%s: can't parse \"sunxi-pwms\" property\n", __func__);
+@@ -730,7 +730,7 @@ static int sunxi_pwm_enable_dual(struct pwm_chip *chip, struct pwm_device *pwm,
+     }
+ 
+     /*set bind pwm pin state*/
+-    sub_np[1] = of_parse_phandle(chip->dev->of_node, "sunxi-pwms", pwm_index[1]);
++    sub_np[1] = of_parse_phandle(chip->dev.of_node, "sunxi-pwms", pwm_index[1]);
+     if (IS_ERR_OR_NULL(sub_np[1]))
+     {
+         pr_err("%s: can't parse \"sunxi-pwms\" property\n", __func__);
+@@ -800,7 +800,7 @@ static void sunxi_pwm_disable_single(struct pwm_chip *chip, struct pwm_device *p
+     struct platform_device *pwm_pdevice;
+ 
+     index = pwm->hwpwm;
+-    sub_np = of_parse_phandle(chip->dev->of_node, "sunxi-pwms", index);
++    sub_np = of_parse_phandle(chip->dev.of_node, "sunxi-pwms", index);
+     if (IS_ERR_OR_NULL(sub_np))
+     {
+         pr_err("%s: can't parse \"sunxi-pwms\" property\n", __func__);
+@@ -856,7 +856,7 @@ static void sunxi_pwm_disable_dual(struct pwm_chip *chip, struct pwm_device *pwm
+     pwm_index[1] = bind_num;
+ 
+     /* get current index pwm device */
+-    sub_np[0] = of_parse_phandle(chip->dev->of_node, "pwms", pwm_index[0]);
++    sub_np[0] = of_parse_phandle(chip->dev.of_node, "pwms", pwm_index[0]);
+     if (IS_ERR_OR_NULL(sub_np[0]))
+     {
+         pr_err("%s: can't parse \"pwms\" property\n", __func__);
+@@ -869,7 +869,7 @@ static void sunxi_pwm_disable_dual(struct pwm_chip *chip, struct pwm_device *pwm
+         return;
+     }
+     /* get bind pwm device */
+-    sub_np[1] = of_parse_phandle(chip->dev->of_node, "pwms", pwm_index[1]);
++    sub_np[1] = of_parse_phandle(chip->dev.of_node, "pwms", pwm_index[1]);
+     if (IS_ERR_OR_NULL(sub_np[1]))
+     {
+         pr_err("%s: can't parse \"pwms\" property\n", __func__);
+@@ -1016,15 +1016,7 @@ static int sunxi_pwm_probe(struct platform_device *pdev)
+         pwm->chip.npwm = 1;
+     }
+ 
+-    /* read property pwm-base */
+-    ret = of_property_read_u32(np, "pwm-base", &pwm->chip.base);
+-    if (ret < 0)
+-    {
+-        dev_err(&pdev->dev, "failed to get pwm-base: %d, force to -1 !\n", ret);
+-        /* force to one pwm if read property fail */
+-        pwm->chip.base = -1;
+-    }
+-    pwm->chip.dev = &pdev->dev;
++    pwm->chip.dev.parent = &pdev->dev;
+     pwm->chip.ops = &sunxi_pwm_ops;
+ 
+     /* add pwm chip to pwm-core */
+@@ -1112,15 +1104,13 @@ static int sunxi_pwm_probe(struct platform_device *pdev)
+     return ret;
+ }
+ 
+-static int sunxi_pwm_remove(struct platform_device *pdev)
++static void sunxi_pwm_remove(struct platform_device *pdev)
+ {
+     struct sunxi_pwm_chip *pwm = platform_get_drvdata(pdev);
+     clk_disable(pwm->clk);
+     clk_disable(pwm->bus_clk);
+     reset_control_assert(pwm->pwm_rst_clk);
+     pwmchip_remove(&pwm->chip);
+-
+-    return 0;
+ }
+ 
+ static int sunxi_pwm_suspend(struct platform_device *pdev, pm_message_t state)
+-- 
+2.34.1
+

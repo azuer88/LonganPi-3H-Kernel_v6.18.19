@@ -1,0 +1,241 @@
+From 56dce452b010a3dc61427c909402d79e69023ae4 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Thu, 26 Mar 2026 14:52:26 +0000
+Subject: [PATCH 48/48] drm/sun4i: add H616/DE33 display support (port of 0011)
+
+- sun8i_hdmi_phy: add H616 MPLL/cur_ctr/phy_config tables, variant,
+  and OF table entry for allwinner,sun50i-h616-hdmi-phy
+- sun4i_tcon: add SUN4I_TCON_GCTL_PAD_SEL and set it in tcon_bind
+- sun8i_csc: add sun8i_csc_base() helper and DE33 CCSC coefficient
+  function; wire DE33 into set_ccsc_coefficients and enable_ccsc
+- sun50i-h616.dtsi: add reg-names to mixer0 node (mixer/top/display)
+  required by devm_platform_ioremap_resource_byname in 6.18 driver
+---
+ .../arm64/boot/dts/allwinner/sun50i-h616.dtsi |  1 +
+ drivers/gpu/drm/sun4i/sun4i_tcon.c            |  4 +
+ drivers/gpu/drm/sun4i/sun4i_tcon.h            |  1 +
+ drivers/gpu/drm/sun4i/sun8i_csc.c             | 51 +++++++++++-
+ drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c        | 78 +++++++++++++++++++
+ 5 files changed, 134 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+index 853730bf8..fa5b5eca8 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+@@ -208,6 +208,7 @@ mixer0: mixer@100000 {
+ 				reg = <0x100000 0x100000>,
+ 				      <0x8100 0x40>,
+ 				      <0x280000 0x20000>;
++				reg-names = "mixer", "top", "display";
+ 				clocks = <&display_clocks CLK_BUS_MIXER0>,
+ 					 <&display_clocks CLK_MIXER0>;
+ 				clock-names = "bus", "mod";
+diff --git a/drivers/gpu/drm/sun4i/sun4i_tcon.c b/drivers/gpu/drm/sun4i/sun4i_tcon.c
+index 960e83c82..b2b4b11cd 100644
+--- a/drivers/gpu/drm/sun4i/sun4i_tcon.c
++++ b/drivers/gpu/drm/sun4i/sun4i_tcon.c
+@@ -1265,6 +1265,10 @@ static int sun4i_tcon_bind(struct device *dev, struct device *master,
+ 			goto err_free_dclk;
+ 	}
+ 
++	regmap_update_bits(tcon->regs, SUN4I_TCON_GCTL_REG,
++			   SUN4I_TCON_GCTL_PAD_SEL,
++			   SUN4I_TCON_GCTL_PAD_SEL);
++
+ 	if (tcon->quirks->needs_de_be_mux) {
+ 		/*
+ 		 * We assume there is no dynamic muxing of backends
+diff --git a/drivers/gpu/drm/sun4i/sun4i_tcon.h b/drivers/gpu/drm/sun4i/sun4i_tcon.h
+index fa23aa23f..0315c9ca5 100644
+--- a/drivers/gpu/drm/sun4i/sun4i_tcon.h
++++ b/drivers/gpu/drm/sun4i/sun4i_tcon.h
+@@ -22,6 +22,7 @@
+ #define SUN4I_TCON_GCTL_IOMAP_MASK			BIT(0)
+ #define SUN4I_TCON_GCTL_IOMAP_TCON1			(1 << 0)
+ #define SUN4I_TCON_GCTL_IOMAP_TCON0			(0 << 0)
++#define SUN4I_TCON_GCTL_PAD_SEL				BIT(1)
+ 
+ #define SUN4I_TCON_GINT0_REG			0x4
+ #define SUN4I_TCON_GINT0_VBLANK_ENABLE(pipe)		BIT(31 - (pipe))
+diff --git a/drivers/gpu/drm/sun4i/sun8i_csc.c b/drivers/gpu/drm/sun4i/sun8i_csc.c
+index c100d29b1..b064b0258 100644
+--- a/drivers/gpu/drm/sun4i/sun8i_csc.c
++++ b/drivers/gpu/drm/sun4i/sun8i_csc.c
+@@ -140,6 +140,14 @@ static void sun8i_csc_set_coefficients(struct regmap *map, u32 base,
+ 	}
+ }
+ 
++static u32 sun8i_csc_base(struct sun8i_mixer *mixer, int layer)
++{
++	if (mixer->cfg->de_type == SUN8I_MIXER_DE33)
++		return sun8i_channel_base(mixer, layer) - 0x200;
++	else
++		return ccsc_base[mixer->cfg->ccsc][layer];
++}
++
+ static void sun8i_de3_ccsc_set_coefficients(struct regmap *map, int layer,
+ 					    enum sun8i_csc_mode mode,
+ 					    enum drm_color_encoding encoding,
+@@ -178,6 +186,41 @@ static void sun8i_de3_ccsc_set_coefficients(struct regmap *map, int layer,
+ 	}
+ }
+ 
++static void sun8i_de33_ccsc_set_coefficients(struct sun8i_mixer *mixer,
++					     int layer,
++					     enum sun8i_csc_mode mode,
++					     enum drm_color_encoding encoding,
++					     enum drm_color_range range)
++{
++	const u32 *table;
++	u32 base, addr;
++	int i;
++
++	base = sun8i_csc_base(mixer, layer);
++	table = yuv2rgb_de3[range][encoding];
++
++	regmap_write(mixer->engine.regs, base + 4, table[3] >> 16);
++	regmap_write(mixer->engine.regs, base + 8, table[7] >> 16);
++	regmap_write(mixer->engine.regs, base + 12, table[11] >> 16);
++
++	for (i = 0; i < 12; i++) {
++		u32 val = table[i];
++
++		addr = SUN8I_CSC_COEFF(base, i);
++		if (mode == SUN8I_CSC_MODE_YVU2RGB) {
++			if ((i & 3) == 1)
++				addr = SUN8I_CSC_COEFF(base, i + 1);
++			else if ((i & 3) == 2)
++				addr = SUN8I_CSC_COEFF(base, i - 1);
++		}
++
++		if (i == 3 || i == 7 || i == 11)
++			val &= 0xffff;
++
++		regmap_write(mixer->engine.regs, addr, val);
++	}
++}
++
+ static void sun8i_csc_enable(struct regmap *map, u32 base, bool enable)
+ {
+ 	u32 val;
+@@ -212,6 +255,12 @@ void sun8i_csc_set_ccsc_coefficients(struct sun8i_mixer *mixer, int layer,
+ {
+ 	u32 base;
+ 
++	if (mixer->cfg->de_type == SUN8I_MIXER_DE33) {
++		sun8i_de33_ccsc_set_coefficients(mixer, layer, mode,
++						 encoding, range);
++		return;
++	}
++
+ 	if (mixer->cfg->de_type == SUN8I_MIXER_DE3) {
+ 		sun8i_de3_ccsc_set_coefficients(mixer->engine.regs, layer,
+ 						mode, encoding, range);
+@@ -233,7 +282,7 @@ void sun8i_csc_enable_ccsc(struct sun8i_mixer *mixer, int layer, bool enable)
+ 		return;
+ 	}
+ 
+-	base = ccsc_base[mixer->cfg->ccsc][layer];
++	base = sun8i_csc_base(mixer, layer);
+ 
+ 	sun8i_csc_enable(mixer->engine.regs, base, enable);
+ }
+diff --git a/drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c b/drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c
+index 4fa69c463..c6228e7c9 100644
+--- a/drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c
++++ b/drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c
+@@ -626,6 +626,80 @@ static const struct sun8i_hdmi_phy_variant sun50i_h6_hdmi_phy = {
+ 	.phy_init = &sun50i_hdmi_phy_init_h6,
+ };
+ 
++
++static const struct dw_hdmi_mpll_config sun50i_h616_mpll_cfg[] = {
++	{
++		27000000,
++		{
++			{0x00b3, 0x0003},
++			{0x2153, 0x0003},
++			{0x40f3, 0x0003},
++		},
++	}, {
++		74250000,
++		{
++			{0x0072, 0x0003},
++			{0x2145, 0x0003},
++			{0x4061, 0x0003},
++		},
++	}, {
++		148500000,
++		{
++			{0x0051, 0x0003},
++			{0x214c, 0x0003},
++			{0x4064, 0x0003},
++		},
++	}, {
++		297000000,
++		{
++			{0x0040, 0x0003},
++			{0x3b4c, 0x0003},
++			{0x5a64, 0x0003},
++		},
++	}, {
++		594000000,
++		{
++			{0x1a40, 0x0003},
++			{0x3b4c, 0x0003},
++			{0x5a64, 0x0003},
++		},
++	}, {
++		~0UL,
++		{
++			{0x0000, 0x0000},
++			{0x0000, 0x0000},
++			{0x0000, 0x0000},
++		},
++	}
++};
++
++static const struct dw_hdmi_curr_ctrl sun50i_h616_cur_ctr[] = {
++	/* pixelclk    bpp8    bpp10   bpp12 */
++	{ 27000000,  { 0x0012, 0x0000, 0x0000 }, },
++	{ 74250000,  { 0x0013, 0x0013, 0x0013 }, },
++	{ 148500000, { 0x0019, 0x0019, 0x0019 }, },
++	{ 297000000, { 0x0019, 0x001b, 0x0019 }, },
++	{ 594000000, { 0x0010, 0x0010, 0x0010 }, },
++	{ ~0UL,      { 0x0000, 0x0000, 0x0000 }, }
++};
++
++static const struct dw_hdmi_phy_config sun50i_h616_phy_config[] = {
++	/*pixelclk   symbol   term   vlev*/
++	{27000000,  0x8009, 0x0007, 0x02b0},
++	{74250000,  0x8019, 0x0004, 0x0290},
++	{148500000, 0x8019, 0x0004, 0x0290},
++	{297000000, 0x8039, 0x0004, 0x022b},
++	{594000000, 0x8029, 0x0000, 0x008a},
++	{~0UL,      0x0000, 0x0000, 0x0000}
++};
++
++static const struct sun8i_hdmi_phy_variant sun50i_h616_hdmi_phy = {
++	.cur_ctr  = sun50i_h616_cur_ctr,
++	.mpll_cfg = sun50i_h616_mpll_cfg,
++	.phy_cfg  = sun50i_h616_phy_config,
++	.phy_init = &sun50i_hdmi_phy_init_h6,
++};
++
+ static const struct of_device_id sun8i_hdmi_phy_of_table[] = {
+ 	{
+ 		.compatible = "allwinner,sun8i-a83t-hdmi-phy",
+@@ -647,6 +721,10 @@ static const struct of_device_id sun8i_hdmi_phy_of_table[] = {
+ 		.compatible = "allwinner,sun50i-h6-hdmi-phy",
+ 		.data = &sun50i_h6_hdmi_phy,
+ 	},
++	{
++		.compatible = "allwinner,sun50i-h616-hdmi-phy",
++		.data = &sun50i_h616_hdmi_phy,
++	},
+ 	{ /* sentinel */ }
+ };
+ 
+-- 
+2.34.1
+

@@ -1,0 +1,136 @@
+From 32199b20020c4711800e0557f6aa76c5fb768262 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Wed, 25 Mar 2026 04:43:10 +0000
+Subject: [PATCH 31/48] add-ac300-ephy-support-for-linux
+
+---
+ .../arm64/boot/dts/allwinner/sun50i-h616.dtsi |  7 +++++++
+ .../boot/dts/allwinner/sun50i-h616.dtsi.orig  | 15 +++++++++++++++
+ .../dts/allwinner/sun50i-h618-longanpi-3h.dts | 19 +++++++++++++++++++
+ .../sun50i-h618-longanpi-3h.dts.orig          | 15 +++++++++++++++
+ 4 files changed, 56 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+index 18b198236..3e7ba6ded 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+@@ -313,6 +313,13 @@ pio: pinctrl@300b000 {
+ 			interrupt-controller;
+ 			#interrupt-cells = <3>;
+ 
++			rmii_pins: rmii-pins {
++				pins = "PA0", "PA1", "PA2", "PA3", "PA4",
++				       "PA5", "PA6", "PA7", "PA8", "PA9";
++				function = "emac1";
++				drive-strength = <40>;
++			};
++
+ 			ext_rgmii_pins: rgmii-pins {
+ 				pins = "PI0", "PI1", "PI2", "PI3", "PI4",
+ 				       "PI5", "PI7", "PI8", "PI9", "PI10",
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi.orig b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi.orig
+index 37a256fe8..18b198236 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi.orig
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi.orig
+@@ -322,6 +322,11 @@
+ 				drive-strength = <40>;
+ 			};
+ 
++			uart1_pg_pins: uart1-pg-pins {
++				pins = "PG6", "PG7";
++				function = "uart1";
++			};
++
+ 			i2c0_pins: i2c0-pins {
+ 				pins = "PI5", "PI6";
+ 				function = "i2c0";
+@@ -332,6 +337,11 @@
+ 				function = "i2c3";
+ 			};
+ 
++			i2c3_pg_pins: i2c3-pg-pins {
++				pins = "PG18", "PG17";
++				function = "i2c3";
++			};
++
+ 			ir_rx_pin: ir-rx-pin {
+ 				pins = "PH10";
+ 				function = "ir_rx";
+@@ -392,6 +402,11 @@
+ 				function = "spdif";
+ 			};
+ 
++			spi1_cs1_pin: spi1-cs1-pin {
++				pins = "PH9";
++				function = "spi1";
++			};
++
+ 			uart0_ph_pins: uart0-ph-pins {
+ 				pins = "PH0", "PH1";
+ 				function = "uart0";
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+index 36f554e0b..00aa48713 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+@@ -17,6 +17,7 @@ / {
+ 
+ 	aliases {
+ 		ethernet0 = &emac0;
++		ethernet1 = &emac1;
+ 		serial0 = &uart0;
+ 	};
+ 
+@@ -145,6 +146,24 @@ ext_rgmii_phy: ethernet-phy@1 {
+ 	};
+ };
+ 
++&emac1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&rmii_pins>;
++	phy-mode = "rmii";
++	phy-handle = <&ac300_ephy>;
++	phy-supply = <&reg_aldo1>;
++	allwinner,rx-delay-ps = <3100>;
++	allwinner,tx-delay-ps = <700>;
++	status = "okay";
++};
++
++&mdio1 {
++	ac300_ephy: ethernet-phy@10 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <0>;
++	};
++};
++
+ &mmc0 {
+ 	disable-wp;
+ 	bus-width = <4>;
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts.orig b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts.orig
+index cb7cf19ca..36f554e0b 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts.orig
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts.orig
+@@ -157,6 +157,21 @@
+ 	status = "okay";
+ };
+ 
++&uart1 {
++	pinctrl-0 = <&uart1_pg_pins>;
++	status = "okay";
++};
++
++&spi1 {
++	pinctrl-0 = <&spi1_pins>, <&spi1_cs0_pin>;
++	status = "okay";
++};
++
++&i2c3 {
++	pinctrl-0 = <&i2c3_pg_pins>;
++	status = "okay";
++};
++
+ &usbotg {
+ 	/*
+ 	 * PHY0 pins are connected to a USB-C socket, but a role switch
+-- 
+2.34.1
+
