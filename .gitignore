@@ -3,3 +3,4 @@ build/*
 .env
 temp/*
 *.sublime-*
+.claude/
