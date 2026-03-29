@@ -1,53 +1,53 @@
-# Docker Kernel Build — LPI3H
+# Docker Build — LPI3H
 
-## State of the tree
-
-- Source: `/extra/LPI3H/LonganPi-3H-SDK/build/linux/`
-- Kernel: 6.18.19, base commit `4aea1dc4c`, 49 patches applied (HEAD `daf080d2a8dd`)
-- Patches live in `linux.new/` — already applied; present for reference only
-- Config: `longanpi_3h_defconfig`
-- Output `.deb` files land in `/extra/LPI3H/LonganPi-3H-SDK/build/`
+Single image (`lpi3h-build`) for both kernel and rootfs builds.
 
 ## Build the Docker image (once)
 
-Run from `/extra/LPI3H/LonganPi-3H-SDK/docker`:
+Run from `/extra/LPI3H/LonganPi-3H-SDK/`:
 
 ```sh
-docker build --network=host -f Dockerfile -t kernelbuild .
+docker build --network=host -f docker/Dockerfile -t lpi3h-build .
 ```
 
-Uses apt proxy `http://aptcacheserver:8000/` (primary) with automatic fallback to `http://localhost:8080/`. The Dockerfile probes `aptcacheserver:8000` at build time and selects whichever is reachable.
+Uses apt proxy `http://aptcacheserver:8000/` (primary) with automatic fallback to `http://localhost:8080/`.
 
 ## Build the kernel
-
-Run from `/extra/LPI3H/LonganPi-3H-SDK/`:
 
 ```sh
 docker run --rm --network=host \
   --ulimit nofile=1048576:1048576 \
   --cpus="10" \
   -v /extra/LPI3H/LonganPi-3H-SDK:/sdk \
-  kernelbuild \
+  lpi3h-build \
   bash -c "cd /sdk && CROSS_COMPILE=aarch64-linux-gnu- bash mkkernel.sh"
 ```
 
-`mkkernel.sh` runs `make longanpi_3h_defconfig` then `make bindeb-pkg`.
-
-Add `--clean` to force `make clean` first (needed after config changes):
+Add `--clean` after config changes:
 
 ```sh
   bash -c "cd /sdk && CROSS_COMPILE=aarch64-linux-gnu- bash mkkernel.sh --clean"
 ```
 
+## Build the rootfs
+
+Requires `--privileged` for mmdebstrap chroot:
+
+```sh
+docker run --rm --privileged --network=host \
+  -v /extra/LPI3H/LonganPi-3H-SDK:/sdk \
+  lpi3h-build \
+  bash -c "cd /sdk && bash mkrootfs.sh"
+```
+
 ## Critical constraints
 
-- **Must bind-mount from `/extra/LPI3H/`** (ext4). Never from `/home/lou/Projects/` — that path is a FUSE/unionfs mount and causes `ar: Too many open files` regardless of ulimit.
-- **`--ulimit nofile=1048576:1048576` is required.** Without it the build fails at the linking stage.
-- **`--network=host` is required** for the apt proxy and for the container to reach it during image build.
+- **Must bind-mount from `/extra/LPI3H/`** (ext4). Never from `/home/lou/Projects/` — FUSE/unionfs causes `ar: Too many open files`.
+- **`--ulimit nofile=1048576:1048576`** required for kernel link stage.
+- **`--network=host`** required for apt proxy.
+- **`--privileged`** required for rootfs build (mmdebstrap needs real root for arm64 cross-bootstrap).
 
 ## Stale x86-64 binaries (if build/linux was rsynced from longan-builder)
-
-The source tree may contain x86-64 ELF binaries (fixdep, conf, etc.) built on longan-builder (glibc 2.34). These won't run in the container and must be deleted so they rebuild from source:
 
 ```sh
 find /extra/LPI3H/LonganPi-3H-SDK/build/linux -type f -executable ! -name "*.sh" ! -name "*.py" ! -name "*.pl" | while read f; do
@@ -55,31 +55,27 @@ find /extra/LPI3H/LonganPi-3H-SDK/build/linux -type f -executable ! -name "*.sh"
 done
 ```
 
-Run this before the first build after any rsync from longan-builder.
+Run before the first build after any rsync from longan-builder.
 
 ## Output
 
-On success, `.deb` packages appear in `build/`:
-
+Kernel debs land in `build/`:
 ```
-build/linux-image-6.18.19+_<version>_arm64.deb
-build/linux-headers-6.18.19+_<version>_arm64.deb
+build/linux-image-6.18.19_<version>_arm64.deb
+build/linux-headers-6.18.19_<version>_arm64.deb
 build/linux-libc-dev_<version>_arm64.deb
 ```
 
-Install on the device via `dpkg -i` or the `mkimage.sh` pipeline.
+Rootfs image: `build/rootfs_base.ext4`
 
 ## Applying new patches
-
-Patches in `linux.new/` are already applied. To apply additional patches:
 
 ```sh
 cd /extra/LPI3H/LonganPi-3H-SDK/build/linux
 git am < ../../linux.new/XXXX-description.patch
 ```
 
-To revert all patches back to the 6.18.19 base:
-
+Revert all patches to 6.18.19 base:
 ```sh
 git reset --hard 4aea1dc4c
 ```
