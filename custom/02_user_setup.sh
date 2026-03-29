@@ -19,6 +19,7 @@ if [ ! -d "$ROOTFS/home/$USER_NAME" ]; then
     mkdir -p "$ROOTFS/home/$USER_NAME"
     cp -a "$ROOTFS/etc/skel/." "$ROOTFS/home/$USER_NAME/"
 fi
+chown -R ${U_UID}:${U_GID} "$ROOTFS/home/$USER_NAME"
 
 # --- /etc/passwd entry ---
 if ! grep -q "^${USER_NAME}:" "$ROOTFS/etc/passwd"; then
