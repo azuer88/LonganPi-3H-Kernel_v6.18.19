@@ -44,7 +44,7 @@ if ! grep -q "^${USER_NAME}:" "$ROOTFS/etc/group"; then
     echo "${USER_NAME}:x:${U_GID}:" >> "$ROOTFS/etc/group"
 fi
 
-for GRP in dialout cdrom audio video plugdev users netdev input sudo; do
+for GRP in dialout cdrom audio video render plugdev users netdev input sudo; do
     if grep -q "^${GRP}:" "$ROOTFS/etc/group"; then
         # append user to group if not already present
         if ! grep -q "^${GRP}:.*\b${USER_NAME}\b" "$ROOTFS/etc/group"; then
