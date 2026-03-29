@@ -1,0 +1,699 @@
+From e89002e43ad38099052ec7326656f8c48c1cb1d2 Mon Sep 17 00:00:00 2001
+From: Lou Viannay <lou.viannay@octavesolution.com>
+Date: Sun, 29 Mar 2026 14:04:49 +0800
+Subject: [PATCH 1/2] sound/dts: add Allwinner H616/H618 AHUB driver for HDMI
+ audio
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+New driver sun50i-ahub.c implements the Audio Hub (AHUB) APBIF0→I2S1
+path required for HDMI audio on H616/H618. The AHUB has no standalone
+I2S controllers; audio must be routed through the crossbar: DMA writes
+to APBIF0 TX FIFO, which feeds I2S port 1 (hardwired to DW-HDMI I2S
+input).
+
+- sound/soc/sunxi/sun50i-ahub.c: new minimal driver
+  - Handles clocks (audio-hub, bus-audio-hub) and CCU reset
+  - Routes APBIF_TXDIF0 → I2S1 via RXCONT register
+  - I2S1 in master mode (drives BCLK/LRCK at 64×fs for DW-HDMI)
+  - hw_params configures word size, BCLKDIV, channel count
+  - trigger enables/disables APBIF0 TX DRQ and I2S1 TXEN
+  - Uses devm_snd_dmaengine_pcm_register (DMA port 3 for APBIF0 TX)
+- sun50i-h616.dtsi: add ahub@5097000 node (disabled by default)
+- sun50i-h618-longanpi-3h.dts: enable ahub, add simple-audio-card
+  connecting ahub (CPU DAI) to hdmi (dw-hdmi-i2s-audio codec)
+- Kconfig/Makefile: SND_SUN50I_AHUB config
+- longanpi_3h_defconfig: CONFIG_SND_SUN50I_AHUB=m
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+---
+ .../arm64/boot/dts/allwinner/sun50i-h616.dtsi |  12 +
+ .../dts/allwinner/sun50i-h618-longanpi-3h.dts |  19 +
+ arch/arm64/configs/longanpi_3h_defconfig      |   1 +
+ sound/soc/sunxi/Kconfig                       |  11 +
+ sound/soc/sunxi/Makefile                      |   1 +
+ sound/soc/sunxi/sun50i-ahub.c                 | 548 ++++++++++++++++++
+ 6 files changed, 592 insertions(+)
+ create mode 100644 sound/soc/sunxi/sun50i-ahub.c
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+index 2594da7f8..5b4e338c4 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+@@ -860,6 +860,18 @@
+ 			status = "disabled";
+ 		};
+ 
++		ahub: ahub@5097000 {
++			#sound-dai-cells = <0>;
++			compatible = "allwinner,sun50i-h616-ahub";
++			reg = <0x05097000 0xaec>;
++			clocks = <&ccu CLK_AUDIO_HUB>, <&ccu CLK_BUS_AUDIO_HUB>;
++			clock-names = "mod", "bus";
++			resets = <&ccu RST_BUS_AUDIO_HUB>;
++			dmas = <&dma 3>, <&dma 3>;
++			dma-names = "tx", "rx";
++			status = "disabled";
++		};
++
+ 		codec: codec@5096000 {
+ 			#sound-dai-cells = <0>;
+ 			compatible = "allwinner,sun50i-h616-codec";
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+index fb813756f..911821dc8 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+@@ -103,6 +103,21 @@
+ 			};
+ 		};
+ 	};
++
++	hdmi_sound: hdmi-sound {
++		compatible = "simple-audio-card";
++		simple-audio-card,name = "HDMI Audio";
++		simple-audio-card,format = "i2s";
++		simple-audio-card,mclk-fs = <256>;
++
++		simple-audio-card,cpu {
++			sound-dai = <&ahub>;
++		};
++
++		simple-audio-card,codec {
++			sound-dai = <&hdmi>;
++		};
++	};
+ };
+ 
+ &axp313 {
+@@ -151,6 +166,10 @@
+ 	status = "okay";
+ };
+ 
++&ahub {
++	status = "okay";
++};
++
+ &hdmi {
+ 	status = "okay";
+ };
+diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
+index a75613d16..89cdc1c15 100644
+--- a/arch/arm64/configs/longanpi_3h_defconfig
++++ b/arch/arm64/configs/longanpi_3h_defconfig
+@@ -1087,6 +1087,7 @@ CONFIG_CRYPTO_DEV_SUN8I_SS_PRNG=y
+ CONFIG_CRYPTO_DEV_SUN8I_SS_HASH=y
+ CONFIG_DRM_DW_HDMI_I2S_AUDIO=y
+ CONFIG_SND_SUN4I_I2S=y
++CONFIG_SND_SUN50I_AHUB=m
+ CONFIG_DMA_CMA=y
+ CONFIG_PRINTK_TIME=y
+ # CONFIG_DEBUG_BUGVERBOSE is not set
+diff --git a/sound/soc/sunxi/Kconfig b/sound/soc/sunxi/Kconfig
+index 205f422d9..59d786560 100644
+--- a/sound/soc/sunxi/Kconfig
++++ b/sound/soc/sunxi/Kconfig
+@@ -63,6 +63,17 @@ config SND_SUN50I_DMIC
+ 	  Say Y or M to add support for the DMIC audio block in the Allwinner
+ 	  H6 and affiliated SoCs.
+ 
++config SND_SUN50I_AHUB
++	tristate "Allwinner H616/H618 Audio Hub (AHUB) HDMI Audio"
++	depends on OF
++	select SND_SOC_GENERIC_DMAENGINE_PCM
++	select REGMAP_MMIO
++	help
++	  Say Y or M to add support for the Audio Hub (AHUB) in the Allwinner
++	  H616/H618 SoCs. The AHUB routes audio from CPU/DMA (APBIF) channels
++	  to I2S output ports; I2S port 1 feeds the on-chip HDMI controller.
++	  Enables HDMI audio output when combined with dw-hdmi-i2s-audio.
++
+ config SND_SUN8I_ADDA_PR_REGMAP
+ 	tristate
+ 	select REGMAP
+diff --git a/sound/soc/sunxi/Makefile b/sound/soc/sunxi/Makefile
+index 4483fe9c9..f7494851a 100644
+--- a/sound/soc/sunxi/Makefile
++++ b/sound/soc/sunxi/Makefile
+@@ -7,3 +7,4 @@ obj-$(CONFIG_SND_SUN50I_CODEC_ANALOG) += sun50i-codec-analog.o
+ obj-$(CONFIG_SND_SUN8I_CODEC) += sun8i-codec.o
+ obj-$(CONFIG_SND_SUN8I_ADDA_PR_REGMAP) += sun8i-adda-pr-regmap.o
+ obj-$(CONFIG_SND_SUN50I_DMIC) += sun50i-dmic.o
++obj-$(CONFIG_SND_SUN50I_AHUB) += sun50i-ahub.o
+diff --git a/sound/soc/sunxi/sun50i-ahub.c b/sound/soc/sunxi/sun50i-ahub.c
+new file mode 100644
+index 000000000..00e805f83
+--- /dev/null
++++ b/sound/soc/sunxi/sun50i-ahub.c
+@@ -0,0 +1,548 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Allwinner H616/H618 Audio Hub (AHUB) driver for HDMI audio.
++ *
++ * The AHUB provides three APBIF DMA channels and four I2S output ports.
++ * I2S port 1 is hardwired to the DW-HDMI controller's I2S input.
++ * This driver exposes the APBIF0 → I2S1 path as a single PCM playback
++ * DAI for use with the dw-hdmi-i2s-audio codec.
++ *
++ * Hardware routing: CPU/DMA → APBIF0 TX FIFO → AHUB crossbar → I2S1 TX
++ *                                                              → HDMI I2S input
++ *
++ * DMA: APBIF0 TX uses DMA port 3 on H616/H618.
++ *
++ * Copyright (C) 2026 LonganPi-3H-SDK contributors
++ */
++
++#include <linux/clk.h>
++#include <linux/mod_devicetable.h>
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/pm_runtime.h>
++#include <linux/regmap.h>
++#include <linux/reset.h>
++#include <sound/dmaengine_pcm.h>
++#include <sound/pcm_params.h>
++#include <sound/soc.h>
++
++/* ---- AHUB register offsets ---- */
++#define AHUB_RST                    0x008
++#define AHUB_GAT                    0x00c
++
++/* APBIF channel n TX registers (n = 0..2, stride 0x30) */
++#define AHUB_APBIF_TX_CTL(n)        (0x010 + (n) * 0x30)
++#define AHUB_APBIF_TX_IRQ_CTL(n)    (0x014 + (n) * 0x30)
++#define AHUB_APBIF_TXFIFO_CTL(n)    (0x020 + (n) * 0x30)
++#define AHUB_APBIF_TXFIFO(n)        (0x030 + (n) * 0x30)  /* DMA FIFO */
++
++/* I2S port n registers (n = 0..3, stride 0x100) */
++#define AHUB_I2S_CTL(n)             (0x200 + (n) * 0x100)
++#define AHUB_I2S_FMT0(n)            (0x204 + (n) * 0x100)
++#define AHUB_I2S_FMT1(n)            (0x208 + (n) * 0x100)
++#define AHUB_I2S_CLKD(n)            (0x20c + (n) * 0x100)
++#define AHUB_I2S_RXCONT(n)          (0x220 + (n) * 0x100)
++#define AHUB_I2S_CHCFG(n)           (0x224 + (n) * 0x100)
++/* OUT_SLOT s for port n (s = 0..3, stride 0x10 within port) */
++#define AHUB_I2S_OUT_SLOT(n, s)     (0x230 + (n) * 0x100 + (s) * 0x10)
++#define AHUB_I2S_OUT_CHMAP0(n, s)   (0x234 + (n) * 0x100 + (s) * 0x10)
++
++/* ---- AHUB_RST / AHUB_GAT bit positions ---- */
++#define RST_GAT_APBIF_TX0           BIT(31)
++#define RST_GAT_I2S1                BIT(22)
++
++/* ---- AHUB_APBIF_TX_CTL ---- */
++#define APBIF_TX_WS_MASK            GENMASK(18, 16)
++#define APBIF_TX_WS(x)              ((x) << 16)
++#define APBIF_TX_CHAN_MASK          GENMASK(11, 8)
++#define APBIF_TX_CHAN(x)            ((x) << 8)
++#define APBIF_TX_START              BIT(4)
++
++/* ---- AHUB_APBIF_TX_IRQ_CTL ---- */
++#define APBIF_TX_DRQ                BIT(3)
++
++/* ---- AHUB_APBIF_TXFIFO_CTL ---- */
++#define APBIF_TX_FIFO_FLUSH         BIT(12)
++#define APBIF_TX_FIFO_LEVEL(x)      ((x) << 4)
++#define APBIF_TX_TXIM               BIT(0)  /* 1: promote sample to MSB of slot */
++
++/* ---- AHUB_I2S_CTL ---- */
++#define I2S_CTL_CLK_OUT             BIT(18)  /* 1: AHUB drives BCK/LRCK (master) */
++#define I2S_CTL_SDO3_EN             BIT(11)
++#define I2S_CTL_SDO2_EN             BIT(10)
++#define I2S_CTL_SDO1_EN             BIT(9)
++#define I2S_CTL_SDO0_EN             BIT(8)
++#define I2S_CTL_MODE_MASK           GENMASK(5, 4)
++#define I2S_CTL_MODE_I2S            (1 << 4)
++#define I2S_CTL_TXEN                BIT(2)
++#define I2S_CTL_GEN                 BIT(0)
++
++/* ---- AHUB_I2S_FMT0 ---- */
++#define I2S_FMT0_LRCK_WIDTH         BIT(30)   /* 0: 1-cycle LRCK pulse */
++#define I2S_FMT0_LRCK_POL          BIT(19)
++#define I2S_FMT0_LRCK_PERIOD_MASK  GENMASK(17, 8)
++#define I2S_FMT0_LRCK_PERIOD(x)    ((x) << 8)
++#define I2S_FMT0_BCLK_POL          BIT(7)
++#define I2S_FMT0_SR_MASK            GENMASK(6, 4)
++#define I2S_FMT0_SR(x)             ((x) << 4)
++#define I2S_FMT0_SW_MASK            GENMASK(2, 0)
++#define I2S_FMT0_SW(x)             (x)
++
++/* ---- AHUB_I2S_CLKD ---- */
++#define I2S_CLKD_MCLK_EN           BIT(8)
++#define I2S_CLKD_BCLKDIV_MASK      GENMASK(7, 4)
++#define I2S_CLKD_BCLKDIV(x)        ((x) << 4)
++
++/* ---- AHUB_I2S_RXCONT source bits (which feeds this I2S TX output) ---- */
++#define I2S_RXCONT_SRC_APBIF0       BIT(31)
++
++/* ---- AHUB_I2S_CHCFG ---- */
++#define I2S_CHCFG_TX_CHANNUM_MASK  GENMASK(3, 0)
++
++/* ---- AHUB_I2S_OUT_SLOT ---- */
++#define I2S_OUT_OFFSET              BIT(20)   /* 1: I2S 1-cycle delay from LRCK */
++#define I2S_OUT_SLOT_NUM_MASK       GENMASK(19, 16)
++#define I2S_OUT_SLOT_NUM(x)         ((x) << 16)
++#define I2S_OUT_SLOT_EN_MASK        GENMASK(15, 0)
++
++/* I2S port 1 is the HDMI-connected port */
++#define AHUB_HDMI_I2S               1
++
++/*
++ * BCLK divider lookup: actual division ratio → AHUB I2S_CLKD register value.
++ * BCLK = audio-hub-clock / ratio.
++ */
++struct ahub_bclk_div {
++	unsigned int ratio;
++	unsigned int val;
++};
++
++static const struct ahub_bclk_div ahub_bclk_divs[] = {
++	{   1,  1 }, {   2,  2 }, {   4,  3 }, {   6,  4 },
++	{   8,  5 }, {  12,  6 }, {  16,  7 }, {  24,  8 },
++	{  32,  9 }, {  48, 10 }, {  64, 11 }, {  96, 12 },
++	{ 128, 13 }, { 176, 14 }, { 192, 15 },
++};
++
++struct sun50i_ahub {
++	struct regmap *regmap;
++	struct clk *clk_mod;
++	struct clk *clk_bus;
++	struct reset_control *rst;
++	struct snd_dmaengine_dai_dma_data dma_data;
++};
++
++static const struct regmap_config sun50i_ahub_regmap_config = {
++	.reg_bits   = 32,
++	.reg_stride = 4,
++	.val_bits   = 32,
++	.max_register = 0xaec,
++	.cache_type = REGCACHE_NONE,
++};
++
++static int sun50i_ahub_bclk_div_val(unsigned int ratio)
++{
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(ahub_bclk_divs); i++)
++		if (ahub_bclk_divs[i].ratio == ratio)
++			return ahub_bclk_divs[i].val;
++	return -EINVAL;
++}
++
++static int sun50i_ahub_dai_probe(struct snd_soc_dai *dai)
++{
++	struct sun50i_ahub *ahub = snd_soc_dai_get_drvdata(dai);
++
++	/* Register DMA data: playback only, no capture */
++	snd_soc_dai_init_dma_data(dai, &ahub->dma_data, NULL);
++	return 0;
++}
++
++static int sun50i_ahub_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
++{
++	struct sun50i_ahub *ahub = snd_soc_dai_get_drvdata(dai);
++	unsigned int ctl = I2S_CTL_MODE_I2S;
++
++	/* This DAI only supports standard I2S format */
++	if ((fmt & SND_SOC_DAIFMT_FORMAT_MASK) != SND_SOC_DAIFMT_I2S)
++		return -EINVAL;
++
++	switch (fmt & SND_SOC_DAIFMT_CLOCK_PROVIDER_MASK) {
++	case SND_SOC_DAIFMT_BP_FP:
++		/* AHUB is BCK/LRCK provider (master) — required for HDMI */
++		ctl |= I2S_CTL_CLK_OUT;
++		break;
++	case SND_SOC_DAIFMT_BC_FC:
++		/* AHUB is BCK/LRCK consumer (slave) */
++		break;
++	default:
++		return -EINVAL;
++	}
++
++	/* Normal BCK and LRCK polarity only */
++	if ((fmt & SND_SOC_DAIFMT_INV_MASK) != SND_SOC_DAIFMT_NB_NF)
++		return -EINVAL;
++
++	regmap_update_bits(ahub->regmap, AHUB_I2S_CTL(AHUB_HDMI_I2S),
++			   I2S_CTL_MODE_MASK | I2S_CTL_CLK_OUT,
++			   ctl);
++	return 0;
++}
++
++static int sun50i_ahub_hw_params(struct snd_pcm_substream *substream,
++				  struct snd_pcm_hw_params *params,
++				  struct snd_soc_dai *dai)
++{
++	struct sun50i_ahub *ahub = snd_soc_dai_get_drvdata(dai);
++	unsigned int rate     = params_rate(params);
++	unsigned int channels = params_channels(params);
++	unsigned int mclk, bclk_div_ratio;
++	unsigned int tx_ws, i2s_sr;
++	int bclk_div_val, ret;
++
++	/*
++	 * Select audio-hub MCLK for the sample rate family.
++	 * 44.1 kHz family: 22579200 Hz; 48 kHz family: 24576000 Hz.
++	 */
++	mclk = (rate % 11025 == 0) ? 22579200 : 24576000;
++
++	ret = clk_set_rate(ahub->clk_mod, mclk);
++	if (ret)
++		return dev_err_probe(dai->dev, ret,
++				     "failed to set audio-hub rate %u Hz\n", mclk);
++
++	/*
++	 * DW-HDMI I2S input requires 64FS BCLK (HDMI_AUD_INPUTCLKFS_64FS).
++	 * For 2ch/32-bit slots: BCLK = 2 × 32 × fs = 64 × fs.
++	 */
++	bclk_div_ratio = mclk / (64 * rate);
++	bclk_div_val = sun50i_ahub_bclk_div_val(bclk_div_ratio);
++	if (bclk_div_val < 0)
++		return dev_err_probe(dai->dev, bclk_div_val,
++				     "unsupported bclk ratio %u (mclk=%u, fs=%u)\n",
++				     bclk_div_ratio, mclk, rate);
++
++	/*
++	 * APBIF TX word size and I2S sample resolution.
++	 * Slot width is always 32 bits (SW=7) to achieve 64FS BCLK.
++	 * TXIM=1: promote DMA sample to MSB of the 32-bit slot
++	 * (produces left-justified output compatible with I2S standard).
++	 */
++	switch (params_format(params)) {
++	case SNDRV_PCM_FORMAT_S16_LE:
++		tx_ws = 3;      /* 16-bit words from DMA */
++		i2s_sr = 3;     /* 16-bit sample resolution */
++		ahub->dma_data.addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
++		break;
++	case SNDRV_PCM_FORMAT_S24_LE:
++		tx_ws = 5;      /* 24-bit in 32-bit DMA word */
++		i2s_sr = 5;
++		ahub->dma_data.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
++		break;
++	case SNDRV_PCM_FORMAT_S32_LE:
++		tx_ws = 7;      /* 32-bit DMA word */
++		i2s_sr = 7;
++		ahub->dma_data.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
++		break;
++	default:
++		return -EINVAL;
++	}
++
++	/* APBIF0 TX: word size and channel count */
++	regmap_update_bits(ahub->regmap, AHUB_APBIF_TX_CTL(0),
++			   APBIF_TX_WS_MASK | APBIF_TX_CHAN_MASK,
++			   APBIF_TX_WS(tx_ws) | APBIF_TX_CHAN(channels - 1));
++
++	/* APBIF0 TX FIFO: promote sample to MSB of slot */
++	regmap_update_bits(ahub->regmap, AHUB_APBIF_TXFIFO_CTL(0),
++			   APBIF_TX_TXIM, APBIF_TX_TXIM);
++
++	/* I2S1: sample resolution and LRCK period (64FS → 32 BCLK per ch) */
++	regmap_update_bits(ahub->regmap, AHUB_I2S_FMT0(AHUB_HDMI_I2S),
++			   I2S_FMT0_SR_MASK | I2S_FMT0_LRCK_PERIOD_MASK,
++			   I2S_FMT0_SR(i2s_sr) | I2S_FMT0_LRCK_PERIOD(32 - 1));
++
++	/* I2S1: BCLK divider */
++	regmap_update_bits(ahub->regmap, AHUB_I2S_CLKD(AHUB_HDMI_I2S),
++			   I2S_CLKD_BCLKDIV_MASK,
++			   I2S_CLKD_BCLKDIV(bclk_div_val));
++
++	/* I2S1: TX channel count */
++	regmap_update_bits(ahub->regmap, AHUB_I2S_CHCFG(AHUB_HDMI_I2S),
++			   I2S_CHCFG_TX_CHANNUM_MASK, channels - 1);
++
++	/* I2S1 output slot 0: enable required channel slots */
++	regmap_update_bits(ahub->regmap, AHUB_I2S_OUT_SLOT(AHUB_HDMI_I2S, 0),
++			   I2S_OUT_SLOT_NUM_MASK | I2S_OUT_SLOT_EN_MASK,
++			   I2S_OUT_SLOT_NUM(channels - 1) |
++			   ((1 << channels) - 1));
++
++	return 0;
++}
++
++static int sun50i_ahub_trigger(struct snd_pcm_substream *substream, int cmd,
++				struct snd_soc_dai *dai)
++{
++	struct sun50i_ahub *ahub = snd_soc_dai_get_drvdata(dai);
++
++	if (substream->stream != SNDRV_PCM_STREAM_PLAYBACK)
++		return -EINVAL;
++
++	switch (cmd) {
++	case SNDRV_PCM_TRIGGER_START:
++	case SNDRV_PCM_TRIGGER_RESUME:
++	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
++		/* Enable I2S1 TX output */
++		regmap_update_bits(ahub->regmap, AHUB_I2S_CTL(AHUB_HDMI_I2S),
++				   I2S_CTL_TXEN, I2S_CTL_TXEN);
++		/* Enable APBIF0 TX: assert start and enable DMA request */
++		regmap_update_bits(ahub->regmap, AHUB_APBIF_TX_CTL(0),
++				   APBIF_TX_START, APBIF_TX_START);
++		regmap_update_bits(ahub->regmap, AHUB_APBIF_TX_IRQ_CTL(0),
++				   APBIF_TX_DRQ, APBIF_TX_DRQ);
++		break;
++	case SNDRV_PCM_TRIGGER_STOP:
++	case SNDRV_PCM_TRIGGER_SUSPEND:
++	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
++		/* Disable DMA request first, then stop APBIF0 TX */
++		regmap_update_bits(ahub->regmap, AHUB_APBIF_TX_IRQ_CTL(0),
++				   APBIF_TX_DRQ, 0);
++		regmap_update_bits(ahub->regmap, AHUB_APBIF_TX_CTL(0),
++				   APBIF_TX_START, 0);
++		/* Disable I2S1 TX */
++		regmap_update_bits(ahub->regmap, AHUB_I2S_CTL(AHUB_HDMI_I2S),
++				   I2S_CTL_TXEN, 0);
++		break;
++	default:
++		return -EINVAL;
++	}
++	return 0;
++}
++
++static const struct snd_soc_dai_ops sun50i_ahub_dai_ops = {
++	.probe      = sun50i_ahub_dai_probe,
++	.set_fmt    = sun50i_ahub_set_fmt,
++	.hw_params  = sun50i_ahub_hw_params,
++	.trigger    = sun50i_ahub_trigger,
++};
++
++static struct snd_soc_dai_driver sun50i_ahub_dai = {
++	.name = "ahub-hdmi",
++	.playback = {
++		.stream_name  = "AHUB HDMI Playback",
++		.channels_min = 2,
++		.channels_max = 8,
++		.rates        = SNDRV_PCM_RATE_8000_192000,
++		.formats      = SNDRV_PCM_FMTBIT_S16_LE |
++				SNDRV_PCM_FMTBIT_S24_LE |
++				SNDRV_PCM_FMTBIT_S32_LE,
++	},
++	.ops = &sun50i_ahub_dai_ops,
++};
++
++static const struct snd_soc_component_driver sun50i_ahub_component = {
++	.name = "sun50i-ahub",
++};
++
++/*
++ * sun50i_ahub_hw_init - static hardware routing and format setup.
++ * Called at probe time (or after a runtime resume) after clocks are enabled.
++ */
++static void sun50i_ahub_hw_init(struct sun50i_ahub *ahub)
++{
++	/* Enable APBIF0 TX and I2S1 internal resets and gates */
++	regmap_update_bits(ahub->regmap, AHUB_RST,
++			   RST_GAT_APBIF_TX0 | RST_GAT_I2S1,
++			   RST_GAT_APBIF_TX0 | RST_GAT_I2S1);
++	regmap_update_bits(ahub->regmap, AHUB_GAT,
++			   RST_GAT_APBIF_TX0 | RST_GAT_I2S1,
++			   RST_GAT_APBIF_TX0 | RST_GAT_I2S1);
++
++	/*
++	 * Route APBIF_TXDIF0 → I2S1 input (crossbar).
++	 * This writes to I2S1 RXCONT, selecting APBIF_TXDIF0 as the data source
++	 * that I2S1 will transmit outward to the HDMI controller.
++	 */
++	regmap_update_bits(ahub->regmap, AHUB_I2S_RXCONT(AHUB_HDMI_I2S),
++			   I2S_RXCONT_SRC_APBIF0, I2S_RXCONT_SRC_APBIF0);
++
++	/*
++	 * I2S1 format configuration.
++	 * FMT1 = 0x30: MSB first, no companding, TX data delay active.
++	 * FMT0: 32-bit slot width (SW=7), no LRCK_WIDTH pulse extension.
++	 * Output slot: 1-cycle data offset (standard Philips I2S).
++	 */
++	regmap_write(ahub->regmap, AHUB_I2S_FMT1(AHUB_HDMI_I2S), 0x30);
++
++	regmap_update_bits(ahub->regmap, AHUB_I2S_FMT0(AHUB_HDMI_I2S),
++			   I2S_FMT0_LRCK_WIDTH | I2S_FMT0_SW_MASK,
++			   I2S_FMT0_SW(7));   /* 32-bit slot */
++
++	regmap_update_bits(ahub->regmap, AHUB_I2S_OUT_SLOT(AHUB_HDMI_I2S, 0),
++			   I2S_OUT_OFFSET, I2S_OUT_OFFSET);  /* 1-cycle I2S delay */
++
++	/* Default stereo channel map: slot 0 = {ch1(R), ch0(L)} */
++	regmap_write(ahub->regmap, AHUB_I2S_OUT_CHMAP0(AHUB_HDMI_I2S, 0), 0x10);
++
++	/*
++	 * I2S1 control: global enable, I2S master mode (drives BCK/LRCK),
++	 * I2S format, all four SDO lines enabled (HDMI uses up to 4×I2S wires
++	 * for 8-channel audio).  TXEN is managed per-stream in trigger().
++	 */
++	regmap_update_bits(ahub->regmap, AHUB_I2S_CTL(AHUB_HDMI_I2S),
++			   I2S_CTL_CLK_OUT | I2S_CTL_MODE_MASK |
++			   I2S_CTL_GEN |
++			   I2S_CTL_SDO0_EN | I2S_CTL_SDO1_EN |
++			   I2S_CTL_SDO2_EN | I2S_CTL_SDO3_EN,
++			   I2S_CTL_CLK_OUT | I2S_CTL_MODE_I2S |
++			   I2S_CTL_GEN |
++			   I2S_CTL_SDO0_EN | I2S_CTL_SDO1_EN |
++			   I2S_CTL_SDO2_EN | I2S_CTL_SDO3_EN);
++
++	/* Flush APBIF0 TX FIFO and set DMA threshold to 16 entries */
++	regmap_update_bits(ahub->regmap, AHUB_APBIF_TXFIFO_CTL(0),
++			   APBIF_TX_FIFO_FLUSH | APBIF_TX_FIFO_LEVEL(0xf),
++			   APBIF_TX_FIFO_FLUSH | APBIF_TX_FIFO_LEVEL(0xf));
++}
++
++static int sun50i_ahub_runtime_suspend(struct device *dev)
++{
++	struct sun50i_ahub *ahub = dev_get_drvdata(dev);
++
++	clk_disable_unprepare(ahub->clk_mod);
++	clk_disable_unprepare(ahub->clk_bus);
++	return 0;
++}
++
++static int sun50i_ahub_runtime_resume(struct device *dev)
++{
++	struct sun50i_ahub *ahub = dev_get_drvdata(dev);
++	int ret;
++
++	ret = clk_prepare_enable(ahub->clk_bus);
++	if (ret)
++		return ret;
++
++	ret = clk_prepare_enable(ahub->clk_mod);
++	if (ret) {
++		clk_disable_unprepare(ahub->clk_bus);
++		return ret;
++	}
++
++	sun50i_ahub_hw_init(ahub);
++	return 0;
++}
++
++static int sun50i_ahub_probe(struct platform_device *pdev)
++{
++	struct sun50i_ahub *ahub;
++	struct resource *res;
++	void __iomem *base;
++	int ret;
++
++	ahub = devm_kzalloc(&pdev->dev, sizeof(*ahub), GFP_KERNEL);
++	if (!ahub)
++		return -ENOMEM;
++
++	base = devm_platform_get_and_ioremap_resource(pdev, 0, &res);
++	if (IS_ERR(base))
++		return dev_err_probe(&pdev->dev, PTR_ERR(base),
++				     "failed to ioremap AHUB registers\n");
++
++	ahub->regmap = devm_regmap_init_mmio(&pdev->dev, base,
++					     &sun50i_ahub_regmap_config);
++	if (IS_ERR(ahub->regmap))
++		return dev_err_probe(&pdev->dev, PTR_ERR(ahub->regmap),
++				     "failed to init regmap\n");
++
++	ahub->clk_bus = devm_clk_get(&pdev->dev, "bus");
++	if (IS_ERR(ahub->clk_bus))
++		return dev_err_probe(&pdev->dev, PTR_ERR(ahub->clk_bus),
++				     "failed to get bus clock\n");
++
++	ahub->clk_mod = devm_clk_get(&pdev->dev, "mod");
++	if (IS_ERR(ahub->clk_mod))
++		return dev_err_probe(&pdev->dev, PTR_ERR(ahub->clk_mod),
++				     "failed to get mod clock\n");
++
++	ahub->rst = devm_reset_control_get_exclusive(&pdev->dev, NULL);
++	if (IS_ERR(ahub->rst))
++		return dev_err_probe(&pdev->dev, PTR_ERR(ahub->rst),
++				     "failed to get reset\n");
++
++	ret = reset_control_deassert(ahub->rst);
++	if (ret)
++		return dev_err_probe(&pdev->dev, ret,
++				     "failed to deassert CCU reset\n");
++
++	/*
++	 * DMA: APBIF0 TX FIFO physical address, 4-beat bursts.
++	 * addr_width is updated in hw_params to match the PCM format.
++	 */
++	ahub->dma_data.addr      = res->start + AHUB_APBIF_TXFIFO(0);
++	ahub->dma_data.maxburst  = 4;
++	ahub->dma_data.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
++
++	platform_set_drvdata(pdev, ahub);
++
++	ret = devm_snd_soc_register_component(&pdev->dev,
++					      &sun50i_ahub_component,
++					      &sun50i_ahub_dai, 1);
++	if (ret)
++		return dev_err_probe(&pdev->dev, ret,
++				     "failed to register ASoC component\n");
++
++	pm_runtime_enable(&pdev->dev);
++	if (!pm_runtime_enabled(&pdev->dev)) {
++		ret = sun50i_ahub_runtime_resume(&pdev->dev);
++		if (ret)
++			goto err_disable_pm;
++	}
++
++	ret = devm_snd_dmaengine_pcm_register(&pdev->dev, NULL, 0);
++	if (ret)
++		goto err_suspend;
++
++	return 0;
++
++err_suspend:
++	if (!pm_runtime_status_suspended(&pdev->dev))
++		sun50i_ahub_runtime_suspend(&pdev->dev);
++err_disable_pm:
++	pm_runtime_disable(&pdev->dev);
++	return ret;
++}
++
++static void sun50i_ahub_remove(struct platform_device *pdev)
++{
++	pm_runtime_disable(&pdev->dev);
++	if (!pm_runtime_status_suspended(&pdev->dev))
++		sun50i_ahub_runtime_suspend(&pdev->dev);
++}
++
++static const struct dev_pm_ops sun50i_ahub_pm = {
++	RUNTIME_PM_OPS(sun50i_ahub_runtime_suspend,
++		       sun50i_ahub_runtime_resume, NULL)
++};
++
++static const struct of_device_id sun50i_ahub_of_match[] = {
++	{ .compatible = "allwinner,sun50i-h616-ahub" },
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, sun50i_ahub_of_match);
++
++static struct platform_driver sun50i_ahub_driver = {
++	.driver = {
++		.name           = "sun50i-ahub",
++		.of_match_table = sun50i_ahub_of_match,
++		.pm             = pm_ptr(&sun50i_ahub_pm),
++	},
++	.probe  = sun50i_ahub_probe,
++	.remove = sun50i_ahub_remove,
++};
++module_platform_driver(sun50i_ahub_driver);
++
++MODULE_DESCRIPTION("Allwinner H616/H618 Audio Hub (AHUB) HDMI audio driver");
++MODULE_LICENSE("GPL");
++MODULE_ALIAS("platform:sun50i-ahub");
+-- 
+2.17.1
+

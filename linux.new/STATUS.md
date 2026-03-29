@@ -74,6 +74,8 @@ All patches applied except 0048. Current HEAD: 887285633
   888837b51  cedrus/dts: fix H616 VE interrupt GIC SPI 89→93      ← 0054
   dccc300f5  dts: constrain CMA pool below 4 GB (sun4i DMA32)     ← 0055
   887285633  defconfig: add HDMI I2S audio drivers                 ← 0056
+  e89002e43  sound/dts: add AHUB driver for HDMI audio            ← 0057
+  930f33032  defconfig: add CONFIG_SND_SIMPLE_CARD=m              ← 0058
 
 Manual fix notes:
   *  0043: PG17/PG18 pin order in h616.dtsi; uart1 pinctrl-names in LPI3H DTS
@@ -167,6 +169,53 @@ Display pipeline confirmed working on device lpi3h-f1a0 (2026-03-27):
 - cfg80211: link_id params added to many callbacks (6.1+)
 - cfg80211_ch_switch_notify: back to 3 args in 6.18 (link_id dropped from notify)
 - set_monitor_channel, set_wiphy_params, set_tx_power: radio_idx param added (6.0+)
+
+---
+
+---
+
+## HDMI Audio (AHUB driver)
+
+H616/H618 has no standalone I2S controllers — all audio routes through
+the Audio Hub (AHUB) at 0x05097000.
+
+### Architecture
+- APBIF0 (DMA port 3) → AHUB crossbar (RXCONT BIT(31)) → I2S1 → HDMI I2S input
+- DW-HDMI auto-registers `dw-hdmi-i2s-audio.N.auto` when CONFIG0 I2S bit is set
+- Simple-audio-card connects AHUB CPU DAI to dw-hdmi-i2s-audio codec
+
+### Key register notes
+- AHUB_GAT/RST: bit 31 = APBIF_TX0, bit 22 = I2S1
+- AHUB_I2S_RXCONT(1): BIT(31) routes APBIF_TXDIF0 to I2S1 TX output
+- APBIF_TX_TXIM=1: promotes DMA sample to MSB of 32-bit FIFO slot
+  (required for left-justified I2S, which DW-HDMI expects in I2S mode)
+- DW-HDMI requires bit_clk_provider=false → AHUB must be I2S master (CLK_OUT=1)
+- HDMI_AUD_INPUTCLKFS = 64FS → BCLK = 64×fs (32 BCLK per channel, 32-bit slot)
+
+### Files
+- sound/soc/sunxi/sun50i-ahub.c — new driver (CONFIG_SND_SUN50I_AHUB=m)
+- arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi — ahub@5097000 node
+- arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts — enable ahub +
+  simple-audio-card connecting ahub to hdmi
+
+### Status (2026-03-29)
+**WORKING** — confirmed on lpi3h-f1a0 with kernel 6.18.19-27.
+
+Card registers as "HDMI Audio" (hw:Audio,0). Supports S16_LE/S24_LE/S32_LE,
+stereo (2ch only), 32000–192000 Hz.
+
+### To use on device
+```sh
+# Load modules (once; add to /etc/modules for persistence)
+sudo modprobe sun50i-ahub
+sudo modprobe snd-soc-simple-card
+# List sound cards
+aplay -l   # expect card "HDMI Audio"
+# Test tone (must be stereo — device requires 2 channels)
+speaker-test -D hw:Audio,0 -c 2 -t sine -f 440 -l 1
+# Play audio (stereo files only)
+aplay -D hw:Audio,0 stereo.wav
+```
 
 ---
 
