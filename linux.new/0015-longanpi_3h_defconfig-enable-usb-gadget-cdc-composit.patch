@@ -1,0 +1,23 @@
+From b239647b5bf41067a37628aeeffd915a5157b452 Mon Sep 17 00:00:00 2001
+From: Lu Hui <luhui@sipeed.com>
+Date: Tue, 7 Nov 2023 16:37:44 +0800
+Subject: [PATCH 15/56] longanpi_3h_defconfig: enable usb gadget cdc composite
+
+
+diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
+index 2f971fc9d..b44df4582 100644
+--- a/arch/arm64/configs/longanpi_3h_defconfig
++++ b/arch/arm64/configs/longanpi_3h_defconfig
+@@ -2382,7 +2382,8 @@ CONFIG_USB_GADGET_STORAGE_NUM_BUFFERS=2
+ # CONFIG_USB_MASS_STORAGE is not set
+ # CONFIG_USB_G_SERIAL is not set
+ # CONFIG_USB_G_PRINTER is not set
+-# CONFIG_USB_CDC_COMPOSITE is not set
++CONFIG_U_SERIAL_CONSOLE=y
++CONFIG_USB_CDC_COMPOSITE=m
+ # CONFIG_USB_G_ACM_MS is not set
+ # CONFIG_USB_G_MULTI is not set
+ # CONFIG_USB_G_HID is not set
+-- 
+2.17.1
+

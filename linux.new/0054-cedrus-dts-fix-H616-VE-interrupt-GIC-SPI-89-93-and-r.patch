@@ -1,0 +1,115 @@
+From 888837b51925667307c473d1d32559d7463c6844 Mon Sep 17 00:00:00 2001
+From: Lou Viannay <lou.viannay@octavesolution.com>
+Date: Sun, 29 Mar 2026 05:34:13 +0800
+Subject: [PATCH 54/56] =?UTF-8?q?cedrus/dts:=20fix=20H616=20VE=20interrupt?=
+ =?UTF-8?q?=20(GIC=20SPI=2089=20=E2=86=92=2093)=20and=20remove=20polling?=
+ =?UTF-8?q?=20workaround?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The H616 VE hardware asserts its interrupt on GIC SPI 93 (HW ID 125),
+not SPI 89 (HW ID 121) as inherited from H6 in the upstream DTS.
+Confirmed via /dev/mem: GICD_ISPENDR3 bit 29 set after decode complete,
+bit 25 (SPI 89) never fires.
+
+With the correct interrupt, the watchdog polling workaround is no longer
+needed. Revert cedrus_watchdog to upstream behavior and restore the
+2000ms watchdog timeout.
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+index b45c80c19..2594da7f8 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+@@ -166,7 +166,7 @@
+ 				 <&ccu CLK_MBUS_VE>;
+ 			clock-names = "ahb", "mod", "ram";
+ 			resets = <&ccu RST_BUS_VE>;
+-			interrupts = <GIC_SPI 89 IRQ_TYPE_LEVEL_HIGH>;
++			interrupts = <GIC_SPI 93 IRQ_TYPE_LEVEL_HIGH>;
+ 			allwinner,sram = <&ve_sram 1>;
+ 		};
+ 
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
+index 7291d6a27..fbbf9e6f0 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
+@@ -108,7 +108,7 @@ void cedrus_device_run(void *priv)
+ 	if (!error) {
+ 		/* Start the watchdog timer. */
+ 		schedule_delayed_work(&dev->watchdog_work,
+-				      msecs_to_jiffies(5));
++				      msecs_to_jiffies(2000));
+ 
+ 		ctx->current_codec->trigger(ctx);
+ 	} else {
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_hw.c b/drivers/staging/media/sunxi/cedrus/cedrus_hw.c
+index a1168ce60..4991fb6ca 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_hw.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_hw.c
+@@ -170,8 +170,6 @@ void cedrus_watchdog(struct work_struct *work)
+ {
+ 	struct cedrus_dev *dev;
+ 	struct cedrus_ctx *ctx;
+-	enum cedrus_irq_status irq_status;
+-	enum vb2_buffer_state state;
+ 
+ 	dev = container_of(to_delayed_work(work),
+ 			   struct cedrus_dev, watchdog_work);
+@@ -180,53 +178,7 @@ void cedrus_watchdog(struct work_struct *work)
+ 	if (!ctx)
+ 		return;
+ 
+-	/*
+-	 * Check if hardware completed but the interrupt never fired
+-	 * (observed on H616: SLICE_DECODE_INT set but GIC never asserted).
+-	 * If so, complete the job normally instead of declaring a timeout.
+-	 */
+-	irq_status = ctx->current_codec->irq_status(ctx);
+-	if (irq_status != CEDRUS_IRQ_NONE) {
+-		ctx->current_codec->irq_disable(ctx);
+-		ctx->current_codec->irq_clear(ctx);
+-		state = (irq_status == CEDRUS_IRQ_OK) ?
+-			VB2_BUF_STATE_DONE : VB2_BUF_STATE_ERROR;
+-		v4l2_m2m_buf_done_and_job_finish(dev->m2m_dev,
+-						 ctx->fh.m2m_ctx, state);
+-		return;
+-	}
+-
+ 	v4l2_err(&dev->v4l2_dev, "frame processing timed out!\n");
+-	/* Dump key VE registers to diagnose H264 decode hang */
+-	{
+-		u32 mode = readl(dev->base + 0x00);
+-		u32 buf_ctrl = readl(dev->base + 0x50);
+-		u32 dblk_addr = readl(dev->base + 0x54);
+-		u32 intra_addr = readl(dev->base + 0x58);
+-		u32 h264_status = readl(dev->base + 0x200 + 0x28);
+-		u32 h264_vld_off = readl(dev->base + 0x200 + 0x34);
+-		u32 h264_vld_len = readl(dev->base + 0x200 + 0x38);
+-		u32 h264_ctrl = readl(dev->base + 0x200 + 0x20);
+-		u32 extra_buf1 = readl(dev->base + 0x200 + 0x50);
+-		u32 extra_buf2 = readl(dev->base + 0x200 + 0x54);
+-		u32 h264_vld_addr = readl(dev->base + 0x200 + 0x30);
+-		u32 cur_mb_num = readl(dev->base + 0x200 + 0x2c);
+-		u32 error_case = readl(dev->base + 0x200 + 0xb8);
+-		u32 prim_out_fmt = readl(dev->base + 0xec);
+-		u32 prim_stride = readl(dev->base + 0xc8);
+-		v4l2_err(&dev->v4l2_dev,
+-			 "VE regs: mode=%08x buf_ctrl=%08x dblk=%08x intra=%08x\n",
+-			 mode, buf_ctrl, dblk_addr, intra_addr);
+-		v4l2_err(&dev->v4l2_dev,
+-			 "H264 regs: ctrl=%08x status=%08x vld_off=%08x vld_len=%08x\n",
+-			 h264_ctrl, h264_status, h264_vld_off, h264_vld_len);
+-		v4l2_err(&dev->v4l2_dev,
+-			 "H264 regs: vld_addr=%08x extra1=%08x extra2=%08x\n",
+-			 h264_vld_addr, extra_buf1, extra_buf2);
+-		v4l2_err(&dev->v4l2_dev,
+-			 "H264 regs: cur_mb=%08x error=%08x prim_fmt=%08x stride=%08x\n",
+-			 cur_mb_num, error_case, prim_out_fmt, prim_stride);
+-	}
+ 	reset_control_reset(dev->rstc);
+ 	v4l2_m2m_buf_done_and_job_finish(ctx->dev->m2m_dev, ctx->fh.m2m_ctx,
+ 					 VB2_BUF_STATE_ERROR);
+-- 
+2.17.1
+

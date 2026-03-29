@@ -1,0 +1,24 @@
+From daf080d2a8dd6a7fd2ef11eaa5a73fc34fe35336 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Thu, 26 Mar 2026 22:42:50 +0000
+Subject: [PATCH 49/56] aic8800: suppress CAUTION regulatory log message
+
+
+diff --git a/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_mod_params.c b/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_mod_params.c
+index 8e1e7285f..596fdd5aa 100644
+--- a/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_mod_params.c
++++ b/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_mod_params.c
+@@ -1765,10 +1765,6 @@ void rwnx_custregd(struct rwnx_hw *rwnx_hw, struct wiphy *wiphy)
+     }
+ #endif
+     else{
+-        wiphy_err(wiphy,"\n"
+-                  "*******************************************************\n"
+-                  "** CAUTION: USING PERMISSIVE CUSTOM REGULATORY RULES **\n"
+-                  "*******************************************************\n");
+     }
+      rtnl_unlock();
+ #endif
+-- 
+2.17.1
+

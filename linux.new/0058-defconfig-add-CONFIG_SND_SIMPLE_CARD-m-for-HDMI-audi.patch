@@ -1,0 +1,29 @@
+From 930f33032a74d5b46c7f6e0fa525e8f933c62637 Mon Sep 17 00:00:00 2001
+From: Lou Viannay <lou.viannay@octavesolution.com>
+Date: Sun, 29 Mar 2026 14:12:42 +0800
+Subject: [PATCH 2/2] defconfig: add CONFIG_SND_SIMPLE_CARD=m for HDMI audio
+ machine driver
+
+simple-audio-card is the machine driver that connects the AHUB CPU DAI
+to dw-hdmi-i2s-audio; without it no sound card registers.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+---
+ arch/arm64/configs/longanpi_3h_defconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
+index 89cdc1c15..d79cf236d 100644
+--- a/arch/arm64/configs/longanpi_3h_defconfig
++++ b/arch/arm64/configs/longanpi_3h_defconfig
+@@ -1087,6 +1087,7 @@ CONFIG_CRYPTO_DEV_SUN8I_SS_PRNG=y
+ CONFIG_CRYPTO_DEV_SUN8I_SS_HASH=y
+ CONFIG_DRM_DW_HDMI_I2S_AUDIO=y
+ CONFIG_SND_SUN4I_I2S=y
++CONFIG_SND_SIMPLE_CARD=m
+ CONFIG_SND_SUN50I_AHUB=m
+ CONFIG_DMA_CMA=y
+ CONFIG_PRINTK_TIME=y
+-- 
+2.17.1
+

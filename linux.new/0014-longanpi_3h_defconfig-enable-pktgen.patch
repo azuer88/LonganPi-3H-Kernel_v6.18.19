@@ -1,0 +1,22 @@
+From 9b1e732965c6dcf4cb75086417792ffea434e413 Mon Sep 17 00:00:00 2001
+From: Lu Hui <luhui@sipeed.com>
+Date: Tue, 7 Nov 2023 16:26:52 +0800
+Subject: [PATCH 14/56] longanpi_3h_defconfig: enable pktgen
+
+
+diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
+index 9cb13fd79..2f971fc9d 100644
+--- a/arch/arm64/configs/longanpi_3h_defconfig
++++ b/arch/arm64/configs/longanpi_3h_defconfig
+@@ -892,7 +892,7 @@ CONFIG_NET_FLOW_LIMIT=y
+ #
+ # Network testing
+ #
+-# CONFIG_NET_PKTGEN is not set
++CONFIG_NET_PKTGEN=m
+ # end of Network testing
+ # end of Networking options
+ 
+-- 
+2.17.1
+

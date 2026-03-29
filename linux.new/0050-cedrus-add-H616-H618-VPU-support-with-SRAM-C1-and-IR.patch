@@ -1,0 +1,462 @@
+From bc1ba6f12f0e8d6c69f5bbdc35aa04d34ef94bc9 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Sat, 28 Mar 2026 13:59:10 +0000
+Subject: [PATCH 50/56] cedrus: add H616/H618 VPU support with SRAM C1 and IRQ
+ workaround
+
+Enable the Cedrus VPU on Allwinner H616/H618 (LonganPi 3H).
+
+The H616/H618 has a dedicated VE SRAM region (C1) at 0x01a00000
+(2 MiB). Earlier code marked H616 with CEDRUS_QUIRK_NO_SRAM and
+omitted the allwinner,sram DTS property, causing cedrus to skip SRAM
+initialisation and produce broken output.
+
+Changes:
+- sunxi_sram.c: add sun50i-h616-sram-c1 descriptor and DT match entry
+- sun50i-h616.dtsi: add sram_c1 node and allwinner,sram to VE node
+- cedrus.c/h: add CEDRUS_QUIRK_NO_SRAM flag; H616 variant has no quirk
+- cedrus_hw.c: make sunxi_sram_claim/release conditional on quirk flag
+- cedrus_h264.c: fix VLD/deblk/intra buffer setup for H616
+- longanpi_3h_defconfig: enable cedrus and required media framework options
+
+On H616/H618 the VE interrupt line never reaches the GIC (SLICE_DECODE_INT
+is set in the hardware status register, but IRQ 121 count stays zero).
+Work around this by checking irq_status() at the start of the watchdog
+handler: if the hardware completed successfully, finish the job normally
+instead of declaring a timeout. Reduce the watchdog delay to 50 ms to
+keep per-frame latency acceptable.
+
+Tested: H264 decode at 1920x1080 working on lpi3h-f1a0 (H618 board).
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+index fa5b5eca8..b45c80c19 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+@@ -159,6 +159,17 @@
+ 		#size-cells = <1>;
+ 		ranges = <0x0 0x0 0x0 0x40000000>;
+ 
++		video-codec@1c0e000 {
++			compatible = "allwinner,sun50i-h616-video-engine";
++			reg = <0x01c0e000 0x2000>;
++			clocks = <&ccu CLK_BUS_VE>, <&ccu CLK_VE>,
++				 <&ccu CLK_MBUS_VE>;
++			clock-names = "ahb", "mod", "ram";
++			resets = <&ccu RST_BUS_VE>;
++			interrupts = <GIC_SPI 89 IRQ_TYPE_LEVEL_HIGH>;
++			allwinner,sram = <&ve_sram 1>;
++		};
++
+ 		gpu: gpu@1800000 {
+ 			compatible = "allwinner,sun50i-h616-mali",
+ 				     "arm,mali-bifrost";
+@@ -252,6 +263,19 @@
+ 			};
+ 		};
+ 
++		sram_c1: sram@1a00000 {
++			compatible = "mmio-sram";
++			reg = <0x01a00000 0x200000>;
++			#address-cells = <1>;
++			#size-cells = <1>;
++			ranges = <0 0x01a00000 0x200000>;
++
++			ve_sram: sram-section@0 {
++				compatible = "allwinner,sun50i-h616-sram-c1";
++				reg = <0x000000 0x200000>;
++			};
++		};
++
+ 		ccu: clock@3001000 {
+ 			compatible = "allwinner,sun50i-h616-ccu";
+ 			reg = <0x03001000 0x1000>;
+diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
+index 1ee1fa787..476254b1a 100644
+--- a/arch/arm64/configs/longanpi_3h_defconfig
++++ b/arch/arm64/configs/longanpi_3h_defconfig
+@@ -829,6 +829,8 @@ CONFIG_REGULATOR_AXP20X=y
+ CONFIG_REGULATOR_GPIO=y
+ # CONFIG_MEDIA_CEC_SUPPORT is not set
+ CONFIG_MEDIA_SUPPORT=m
++CONFIG_MEDIA_PLATFORM_SUPPORT=y
++CONFIG_VIDEO_DEV=m
+ CONFIG_VIDEO_ADV_DEBUG=y
+ CONFIG_MEDIA_USB_SUPPORT=y
+ CONFIG_USB_GSPCA=m
+@@ -853,6 +855,7 @@ CONFIG_V4L_MEM2MEM_DRIVERS=y
+ CONFIG_VIDEO_MEM2MEM_DEINTERLACE=m
+ CONFIG_VIDEO_SUN8I_DEINTERLACE=m
+ CONFIG_VIDEO_SUN8I_ROTATE=m
++CONFIG_VIDEO_SUNXI_CEDRUS=m
+ CONFIG_V4L_TEST_DRIVERS=y
+ CONFIG_VIDEO_VIM2M=m
+ CONFIG_VIDEO_VICODEC=m
+@@ -860,6 +863,8 @@ CONFIG_VIDEO_VIMC=m
+ CONFIG_VIDEO_VISL=m
+ CONFIG_DRM=y
+ CONFIG_DRM_SUN4I=y
++CONFIG_DRM_PANFROST=m
++CONFIG_SUN50I_H6_PRCM_PPU=y
+ # CONFIG_DRM_SUN6I_DSI is not set
+ CONFIG_DRM_DISPLAY_CONNECTOR=y
+ CONFIG_DRM_PANEL_MIPI_DBI=y
+@@ -868,7 +873,7 @@ CONFIG_FB=m
+ CONFIG_FB_SIMPLE=m
+ CONFIG_FIRMWARE_EDID=y
+ CONFIG_FB_FOREIGN_ENDIAN=y
+-# CONFIG_FRAMEBUFFER_CONSOLE is not set
++CONFIG_FRAMEBUFFER_CONSOLE=y
+ CONFIG_LOGO=y
+ CONFIG_SOUND=y
+ CONFIG_SND=y
+@@ -925,8 +930,8 @@ CONFIG_DMABUF_HEAPS_CMA=y
+ # CONFIG_VIRTIO_MENU is not set
+ # CONFIG_VHOST_MENU is not set
+ CONFIG_STAGING=y
+-CONFIG_FB_TFT=m
+-CONFIG_FB_TFT_ST7789T3=m
++CONFIG_STAGING_MEDIA=y
++CONFIG_VIDEO_SUNXI=y
+ # CONFIG_SURFACE_PLATFORMS is not set
+ # CONFIG_SUN50I_A64_CCU is not set
+ # CONFIG_SUN50I_A100_CCU is not set
+@@ -983,7 +988,7 @@ CONFIG_FUSE_FS=m
+ CONFIG_CUSE=m
+ CONFIG_VIRTIO_FS=m
+ CONFIG_OVERLAY_FS=m
+-CONFIG_FSCACHE=m
++CONFIG_FSCACHE=y
+ CONFIG_CACHEFILES=m
+ CONFIG_CACHEFILES_ONDEMAND=y
+ CONFIG_ISO9660_FS=m
+@@ -1092,3 +1097,5 @@ CONFIG_RCU_CPU_STALL_TIMEOUT=60
+ # CONFIG_FTRACE is not set
+ # CONFIG_STRICT_DEVMEM is not set
+ # CONFIG_RUNTIME_TESTING_MENU is not set
++# CONFIG_CFG80211_REQUIRE_SIGNED_REGDB is not set
++# CONFIG_CFG80211_USE_KERNEL_REGDB_KEYS is not set
+diff --git a/drivers/soc/sunxi/sunxi_sram.c b/drivers/soc/sunxi/sunxi_sram.c
+index 446b9fc1f..d7c121960 100644
+--- a/drivers/soc/sunxi/sunxi_sram.c
++++ b/drivers/soc/sunxi/sunxi_sram.c
+@@ -82,6 +82,12 @@ static struct sunxi_sram_desc sun50i_a64_sram_c = {
+ 				  SUNXI_SRAM_MAP(0, 1, "de2")),
+ };
+ 
++static struct sunxi_sram_desc sun50i_h616_sram_c1 = {
++	.data	= SUNXI_SRAM_DATA("C1", 0x0, 0x0, 31,
++				  SUNXI_SRAM_MAP(0x7fffffff, 0, "cpu"),
++				  SUNXI_SRAM_MAP(0, 1, "ve")),
++};
++
+ static const struct of_device_id sunxi_sram_dt_ids[] = {
+ 	{
+ 		.compatible	= "allwinner,sun4i-a10-sram-a3-a4",
+@@ -99,6 +105,10 @@ static const struct of_device_id sunxi_sram_dt_ids[] = {
+ 		.compatible	= "allwinner,sun50i-a64-sram-c",
+ 		.data		= &sun50i_a64_sram_c.data,
+ 	},
++	{
++		.compatible	= "allwinner,sun50i-h616-sram-c1",
++		.data		= &sun50i_h616_sram_c1.data,
++	},
+ 	{}
+ };
+ 
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.c b/drivers/staging/media/sunxi/cedrus/cedrus.c
+index bff42ea18..b63126ebc 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus.c
+@@ -647,6 +647,16 @@ static const struct cedrus_variant sun50i_h6_cedrus_variant = {
+ 	.mod_rate	= 600000000,
+ };
+ 
++static const struct cedrus_variant sun50i_h616_cedrus_variant = {
++	.capabilities	= CEDRUS_CAPABILITY_UNTILED |
++			  CEDRUS_CAPABILITY_MPEG2_DEC |
++			  CEDRUS_CAPABILITY_H264_DEC |
++			  CEDRUS_CAPABILITY_H265_DEC |
++			  CEDRUS_CAPABILITY_H265_10_DEC |
++			  CEDRUS_CAPABILITY_VP8_DEC,
++	.mod_rate	= 600000000,
++};
++
+ static const struct of_device_id cedrus_dt_match[] = {
+ 	{
+ 		.compatible = "allwinner,sun4i-a10-video-engine",
+@@ -692,6 +702,14 @@ static const struct of_device_id cedrus_dt_match[] = {
+ 		.compatible = "allwinner,sun50i-h6-video-engine",
+ 		.data = &sun50i_h6_cedrus_variant,
+ 	},
++	{
++		.compatible = "allwinner,sun50i-h616-video-engine",
++		.data = &sun50i_h616_cedrus_variant,
++	},
++	{
++		.compatible = "allwinner,sun50i-h618-video-engine",
++		.data = &sun50i_h616_cedrus_variant,
++	},
+ 	{ /* sentinel */ }
+ };
+ MODULE_DEVICE_TABLE(of, cedrus_dt_match);
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.h b/drivers/staging/media/sunxi/cedrus/cedrus.h
+index c4b1217c1..6819992ab 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus.h
++++ b/drivers/staging/media/sunxi/cedrus/cedrus.h
+@@ -29,6 +29,8 @@
+ #define CEDRUS_NAME			"cedrus"
+ 
+ #define CEDRUS_CAPABILITY_UNTILED	BIT(0)
++
++#define CEDRUS_QUIRK_NO_SRAM		BIT(0)
+ #define CEDRUS_CAPABILITY_H265_DEC	BIT(1)
+ #define CEDRUS_CAPABILITY_H264_DEC	BIT(2)
+ #define CEDRUS_CAPABILITY_MPEG2_DEC	BIT(3)
+@@ -173,6 +175,7 @@ struct cedrus_dec_ops {
+ };
+ 
+ struct cedrus_variant {
++	unsigned int	quirks;
+ 	unsigned int	capabilities;
+ 	unsigned int	mod_rate;
+ };
+@@ -198,6 +201,7 @@ struct cedrus_dev {
+ 	struct reset_control	*rstc;
+ 
+ 	unsigned int		capabilities;
++	unsigned int		quirks;
+ 
+ 	struct delayed_work	watchdog_work;
+ };
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
+index fbbf9e6f0..193730af6 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
+@@ -108,7 +108,7 @@ void cedrus_device_run(void *priv)
+ 	if (!error) {
+ 		/* Start the watchdog timer. */
+ 		schedule_delayed_work(&dev->watchdog_work,
+-				      msecs_to_jiffies(2000));
++				      msecs_to_jiffies(50));
+ 
+ 		ctx->current_codec->trigger(ctx);
+ 	} else {
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_h264.c b/drivers/staging/media/sunxi/cedrus/cedrus_h264.c
+index 3e2843ef6..9c3a9923a 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_h264.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_h264.c
+@@ -321,24 +321,34 @@ static void cedrus_write_pred_weight_table(struct cedrus_ctx *ctx,
+  * rare cases frame is not decoded correctly. However, setting offset to 0 and
+  * skipping appropriate amount of bits with flush bits trigger always works.
+  */
+-static void cedrus_skip_bits(struct cedrus_dev *dev, int num)
++static int cedrus_skip_bits(struct cedrus_dev *dev, int num)
+ {
+ 	int count = 0;
+ 
+ 	while (count < num) {
+ 		int tmp = min(num - count, 32);
++		int i;
+ 
+ 		cedrus_write(dev, VE_H264_TRIGGER_TYPE,
+ 			     VE_H264_TRIGGER_TYPE_FLUSH_BITS |
+ 			     VE_H264_TRIGGER_TYPE_N_BITS(tmp));
+-		while (cedrus_read(dev, VE_H264_STATUS) & VE_H264_STATUS_VLD_BUSY)
++		for (i = 0; i < 100000; i++) {
++			if (!(cedrus_read(dev, VE_H264_STATUS) &
++			      VE_H264_STATUS_VLD_BUSY))
++				break;
+ 			udelay(1);
++		}
++		if (i == 100000) {
++			dev_err(dev->dev, "cedrus: VLD timeout in skip_bits\n");
++			return -ETIMEDOUT;
++		}
+ 
+ 		count += tmp;
+ 	}
++	return 0;
+ }
+ 
+-static void cedrus_set_params(struct cedrus_ctx *ctx,
++static int cedrus_set_params(struct cedrus_ctx *ctx,
+ 			      struct cedrus_run *run)
+ {
+ 	const struct v4l2_ctrl_h264_decode_params *decode = run->h264.decode_params;
+@@ -378,15 +388,27 @@ static void cedrus_set_params(struct cedrus_ctx *ctx,
+ 	}
+ 
+ 	/*
+-	 * FIXME: Since the bitstream parsing is done in software, and
+-	 * in userspace, this shouldn't be needed anymore. But it
+-	 * turns out that removing it breaks the decoding process,
+-	 * without any clear indication why.
++	 * Initialize the VLD, then wait for completion before advancing
++	 * past the slice header. INIT_SWDEC must complete before FLUSH_BITS
++	 * to avoid a race where FLUSH_BITS overwrites running INIT_SWDEC.
+ 	 */
+ 	cedrus_write(dev, VE_H264_TRIGGER_TYPE,
+ 		     VE_H264_TRIGGER_TYPE_INIT_SWDEC);
+-
+-	cedrus_skip_bits(dev, slice->header_bit_size);
++	{
++		int i;
++		for (i = 0; i < 100000; i++) {
++			if (!(cedrus_read(dev, VE_H264_STATUS) &
++			      VE_H264_STATUS_VLD_BUSY))
++				break;
++			udelay(1);
++		}
++		if (i == 100000) {
++			dev_err(dev->dev, "cedrus: VLD timeout after INIT_SWDEC\n");
++			return -ETIMEDOUT;
++		}
++	}
++	if (cedrus_skip_bits(dev, slice->header_bit_size))
++		return -ETIMEDOUT;
+ 
+ 	if (V4L2_H264_CTRL_PRED_WEIGHTS_REQUIRED(pps, slice))
+ 		cedrus_write_pred_weight_table(ctx, run);
+@@ -478,6 +500,7 @@ static void cedrus_set_params(struct cedrus_ctx *ctx,
+ 		     VE_H264_CTRL_SLICE_DECODE_INT |
+ 		     VE_H264_CTRL_DECODE_ERR_INT |
+ 		     VE_H264_CTRL_VLD_DATA_REQ_INT);
++	return 0;
+ }
+ 
+ static enum cedrus_irq_status
+@@ -531,9 +554,7 @@ static int cedrus_h264_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	if (ret)
+ 		return ret;
+ 
+-	cedrus_set_params(ctx, run);
+-
+-	return 0;
++	return cedrus_set_params(ctx, run);
+ }
+ 
+ static int cedrus_h264_start(struct cedrus_ctx *ctx)
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_hw.c b/drivers/staging/media/sunxi/cedrus/cedrus_hw.c
+index 444fb5387..a1168ce60 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_hw.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_hw.c
+@@ -134,7 +134,6 @@ static irqreturn_t cedrus_irq(int irq, void *data)
+ 	struct cedrus_ctx *ctx;
+ 	enum vb2_buffer_state state;
+ 	enum cedrus_irq_status status;
+-
+ 	/*
+ 	 * If cancel_delayed_work returns false it means watchdog already
+ 	 * executed and finished the job.
+@@ -171,6 +170,8 @@ void cedrus_watchdog(struct work_struct *work)
+ {
+ 	struct cedrus_dev *dev;
+ 	struct cedrus_ctx *ctx;
++	enum cedrus_irq_status irq_status;
++	enum vb2_buffer_state state;
+ 
+ 	dev = container_of(to_delayed_work(work),
+ 			   struct cedrus_dev, watchdog_work);
+@@ -179,7 +180,53 @@ void cedrus_watchdog(struct work_struct *work)
+ 	if (!ctx)
+ 		return;
+ 
++	/*
++	 * Check if hardware completed but the interrupt never fired
++	 * (observed on H616: SLICE_DECODE_INT set but GIC never asserted).
++	 * If so, complete the job normally instead of declaring a timeout.
++	 */
++	irq_status = ctx->current_codec->irq_status(ctx);
++	if (irq_status != CEDRUS_IRQ_NONE) {
++		ctx->current_codec->irq_disable(ctx);
++		ctx->current_codec->irq_clear(ctx);
++		state = (irq_status == CEDRUS_IRQ_OK) ?
++			VB2_BUF_STATE_DONE : VB2_BUF_STATE_ERROR;
++		v4l2_m2m_buf_done_and_job_finish(dev->m2m_dev,
++						 ctx->fh.m2m_ctx, state);
++		return;
++	}
++
+ 	v4l2_err(&dev->v4l2_dev, "frame processing timed out!\n");
++	/* Dump key VE registers to diagnose H264 decode hang */
++	{
++		u32 mode = readl(dev->base + 0x00);
++		u32 buf_ctrl = readl(dev->base + 0x50);
++		u32 dblk_addr = readl(dev->base + 0x54);
++		u32 intra_addr = readl(dev->base + 0x58);
++		u32 h264_status = readl(dev->base + 0x200 + 0x28);
++		u32 h264_vld_off = readl(dev->base + 0x200 + 0x34);
++		u32 h264_vld_len = readl(dev->base + 0x200 + 0x38);
++		u32 h264_ctrl = readl(dev->base + 0x200 + 0x20);
++		u32 extra_buf1 = readl(dev->base + 0x200 + 0x50);
++		u32 extra_buf2 = readl(dev->base + 0x200 + 0x54);
++		u32 h264_vld_addr = readl(dev->base + 0x200 + 0x30);
++		u32 cur_mb_num = readl(dev->base + 0x200 + 0x2c);
++		u32 error_case = readl(dev->base + 0x200 + 0xb8);
++		u32 prim_out_fmt = readl(dev->base + 0xec);
++		u32 prim_stride = readl(dev->base + 0xc8);
++		v4l2_err(&dev->v4l2_dev,
++			 "VE regs: mode=%08x buf_ctrl=%08x dblk=%08x intra=%08x\n",
++			 mode, buf_ctrl, dblk_addr, intra_addr);
++		v4l2_err(&dev->v4l2_dev,
++			 "H264 regs: ctrl=%08x status=%08x vld_off=%08x vld_len=%08x\n",
++			 h264_ctrl, h264_status, h264_vld_off, h264_vld_len);
++		v4l2_err(&dev->v4l2_dev,
++			 "H264 regs: vld_addr=%08x extra1=%08x extra2=%08x\n",
++			 h264_vld_addr, extra_buf1, extra_buf2);
++		v4l2_err(&dev->v4l2_dev,
++			 "H264 regs: cur_mb=%08x error=%08x prim_fmt=%08x stride=%08x\n",
++			 cur_mb_num, error_case, prim_out_fmt, prim_stride);
++	}
+ 	reset_control_reset(dev->rstc);
+ 	v4l2_m2m_buf_done_and_job_finish(ctx->dev->m2m_dev, ctx->fh.m2m_ctx,
+ 					 VB2_BUF_STATE_ERROR);
+@@ -254,6 +301,7 @@ int cedrus_hw_probe(struct cedrus_dev *dev)
+ 		return -EINVAL;
+ 
+ 	dev->capabilities = variant->capabilities;
++	dev->quirks = variant->quirks;
+ 
+ 	irq_dec = platform_get_irq(dev->pdev, 0);
+ 	if (irq_dec <= 0)
+@@ -273,11 +321,13 @@ int cedrus_hw_probe(struct cedrus_dev *dev)
+ 		return ret;
+ 	}
+ 
+-	ret = sunxi_sram_claim(dev->dev);
+-	if (ret) {
+-		dev_err(dev->dev, "Failed to claim SRAM\n");
++	if (!(variant->quirks & CEDRUS_QUIRK_NO_SRAM)) {
++		ret = sunxi_sram_claim(dev->dev);
++		if (ret) {
++			dev_err(dev->dev, "Failed to claim SRAM\n");
+ 
+-		goto err_mem;
++			goto err_mem;
++		}
+ 	}
+ 
+ 	dev->ahb_clk = devm_clk_get(dev->dev, "ahb");
+@@ -339,7 +389,8 @@ int cedrus_hw_probe(struct cedrus_dev *dev)
+ err_pm:
+ 	pm_runtime_disable(dev->dev);
+ err_sram:
+-	sunxi_sram_release(dev->dev);
++	if (!(dev->quirks & CEDRUS_QUIRK_NO_SRAM))
++		sunxi_sram_release(dev->dev);
+ err_mem:
+ 	of_reserved_mem_device_release(dev->dev);
+ 
+@@ -352,7 +403,8 @@ void cedrus_hw_remove(struct cedrus_dev *dev)
+ 	if (!pm_runtime_status_suspended(dev->dev))
+ 		cedrus_hw_suspend(dev->dev);
+ 
+-	sunxi_sram_release(dev->dev);
++	if (!(dev->quirks & CEDRUS_QUIRK_NO_SRAM))
++		sunxi_sram_release(dev->dev);
+ 
+ 	of_reserved_mem_device_release(dev->dev);
+ }
+-- 
+2.17.1
+

@@ -1,0 +1,66 @@
+From 5fd519bfede5d8d4251390b17a30b1a4798fed25 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Wed, 25 Mar 2026 04:43:13 +0000
+Subject: [PATCH 32/56] sun50i-h618-fix-emac1-mdio1
+
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+index 3e7ba6ded..02e5165d0 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+@@ -598,6 +598,34 @@
+ 			resets = <&ccu RST_BUS_UART5>;
+ 			status = "disabled";
+ 		};
++		
++		emac1: ethernet@5030000 {
++			compatible = "allwinner,sunxi-gmac";
++			reg = <0x05030000 0x10000>,
++			      <0x03000034 0x4>;
++			reg-names = "gmac1_reg","ephy_reg";
++			interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
++			interrupt-names = "gmacirq";
++			resets = <&ccu RST_BUS_EMAC1>;
++			reset-names = "stmmaceth";
++			clocks = <&ccu CLK_BUS_EMAC1>,<&ccu CLK_EMAC_25M>;
++			clock-names = "bus-emac1","emac-25m";
++			pinctrl-0 = <&rmii_pins>;
++			pinctrl-names = "default";
++			tx-delay = <7>;
++			rx-delay = <31>;
++			phy-rst;
++			gmac-power0;
++			gmac-power1;
++			gmac-power2;
++			status = "disabled";
++
++			mdio1: mdio {
++				compatible = "ethernet-phy-ieee802.3-c22";
++				#address-cells = <1>;
++				#size-cells = <0>;
++			};
++		};
+ 
+ 		i2c0: i2c@5002000 {
+ 			compatible = "allwinner,sun50i-h616-i2c",
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi.orig b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi.orig
+index 18b198236..3e7ba6ded 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi.orig
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi.orig
+@@ -313,6 +313,13 @@
+ 			interrupt-controller;
+ 			#interrupt-cells = <3>;
+ 
++			rmii_pins: rmii-pins {
++				pins = "PA0", "PA1", "PA2", "PA3", "PA4",
++				       "PA5", "PA6", "PA7", "PA8", "PA9";
++				function = "emac1";
++				drive-strength = <40>;
++			};
++
+ 			ext_rgmii_pins: rgmii-pins {
+ 				pins = "PI0", "PI1", "PI2", "PI3", "PI4",
+ 				       "PI5", "PI7", "PI8", "PI9", "PI10",
+-- 
+2.17.1
+

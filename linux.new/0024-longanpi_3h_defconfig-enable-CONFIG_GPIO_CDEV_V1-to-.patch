@@ -1,0 +1,23 @@
+From 1d7b0ef4c726e1180b5b634ef1c4ec5b1221d826 Mon Sep 17 00:00:00 2001
+From: Tiandi Zhou <zhoutiandi@sipeed.com>
+Date: Wed, 28 Feb 2024 15:11:24 +0800
+Subject: [PATCH 24/56] longanpi_3h_defconfig: enable CONFIG_GPIO_CDEV_V1 to
+ fix gpiod usage issue
+
+
+diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
+index f2d02fcac..371d6f1a5 100644
+--- a/arch/arm64/configs/longanpi_3h_defconfig
++++ b/arch/arm64/configs/longanpi_3h_defconfig
+@@ -1641,7 +1641,7 @@ CONFIG_OF_GPIO=y
+ # CONFIG_DEBUG_GPIO is not set
+ CONFIG_GPIO_SYSFS=y
+ CONFIG_GPIO_CDEV=y
+-# CONFIG_GPIO_CDEV_V1 is not set
++CONFIG_GPIO_CDEV_V1=y
+ CONFIG_GPIO_GENERIC=y
+ 
+ #
+-- 
+2.17.1
+

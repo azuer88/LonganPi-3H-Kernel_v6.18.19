@@ -1,0 +1,22 @@
+From b761887ef19e82500e30a785ae5124eeaf1dffb7 Mon Sep 17 00:00:00 2001
+From: Lou Viannay <lou.viannay@octavesolution.com>
+Date: Sat, 28 Mar 2026 22:46:45 +0800
+Subject: [PATCH 52/56] cedrus: reduce watchdog to 0ms (immediate work queue)
+
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
+index 7291d6a27..70de9b4e9 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
+@@ -108,7 +108,7 @@ void cedrus_device_run(void *priv)
+ 	if (!error) {
+ 		/* Start the watchdog timer. */
+ 		schedule_delayed_work(&dev->watchdog_work,
+-				      msecs_to_jiffies(5));
++				      msecs_to_jiffies(0));
+ 
+ 		ctx->current_codec->trigger(ctx);
+ 	} else {
+-- 
+2.17.1
+
