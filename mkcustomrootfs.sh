@@ -4,6 +4,10 @@
 #
 # Requires: build/rootfs_base.ext4 (created by mkrootfs.sh)
 
+if [ $(id -u) -ne 0 ]; then
+    exec sudo "$(realpath $0)" "$@"
+fi
+
 BASE_EXT4="./build/rootfs_base.ext4"
 if [ ! -e "$BASE_EXT4" ]; then
     echo "build/rootfs_base.ext4 not found — run mkrootfs.sh first"
@@ -27,7 +31,7 @@ cp --sparse=always --reflink=auto "$BASE_EXT4" ./build/input/rootfs.ext4
 mkdir -pv ./build/rootfs
 
 if [ $(id -u) -ne 0 ]; then
-    fuse2fs -o fakeroot ./build/input/rootfs.ext4 ./build/rootfs
+    fuse2fs ./build/input/rootfs.ext4 ./build/rootfs
     echo "calling customization scripts"
     source ./customize_rootfs.sh ./build/rootfs
     echo "done with customization scripts"
