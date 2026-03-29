@@ -4,7 +4,16 @@
 
 - Kernel built with `CONFIG_SUN50I_H6_PRCM_PPU=y` (required for Panfrost to probe)
 - HDMI display connected
-- mpv installed: `sudo apt install mpv`
+- seatd installed (seat manager; required for DRM access from TTY without a display manager)
+- mpv installed
+
+```sh
+sudo apt install seatd mpv
+sudo usermod -aG video $USER   # seatd grants DRM access to the video group
+# log out and back in for group membership to take effect
+```
+
+Both packages use default Debian config — no further customization needed.
 
 ## Verify Panfrost is working
 
