@@ -61,6 +61,13 @@ Notes:
   - `ramdisk_addr_r=0x4FF00000`
   - `scriptaddr=0x4FC00000`
 
+**Critical: `boot.cmd` content was silently corrupted on the live board.**
+The heredoc `sudo tee` approach caused `${devtype}`, `${devnum}`, `${distro_bootpart}`
+to be expanded (to empty strings) by the shell before reaching tee. The resulting
+`boot.cmd` had blank variable references and a truncated `setenv bootargs` line.
+Use single-quoted heredoc (`<< 'EOF'`) to prevent expansion, or write the file from
+the host onto a mounted filesystem.
+
 ---
 
 ### 3. Compile `boot.cmd` → `boot.scr`
@@ -166,3 +173,120 @@ Armbian tools expect `/boot/dtb/allwinner/`. Options:
 Verify `u-boot-tools` is present (needed for `mkimage` at image-build time in
 `99_fix_partuuid.sh`). Currently `u-boot-menu` is in BASE_PACKAGE which may
 pull it in as a dependency — confirm or add `u-boot-tools` explicitly.
+
+---
+
+## Boot failure post-migration — root cause and fix
+
+After completing the migration on `lpi3h-f1a0` and rebooting, the board failed
+to boot. Diagnosis via U-Boot serial console revealed two independent problems.
+
+### Problem 1: U-Boot ext4 driver cannot read high-numbered inodes
+
+U-Boot reported:
+```
+Found U-Boot script /boot/boot.scr
+Failed to load '/boot/boot.scr'
+Wrong image format for "source" command
+```
+
+U-Boot could list `/boot/` and see `boot.scr` in the directory, but every
+`load` attempt failed. Files created during the original rootfs build
+(vmlinuz, System.map, config, extlinux.conf) loaded fine. All files created
+on the live board or copied from a host onto the mounted SD card failed.
+
+**Root cause:** The filesystem has the `meta_bg` ext4 feature enabled. U-Boot's
+ext4 driver does not correctly locate inode tables for block groups beyond
+approximately group 3. Files created at image-build time land in groups 0–3
+(inodes ~1–32767). Files created later on a live 30 GB filesystem land in
+group 83 (inodes ~680000+). U-Boot can traverse directory entries for all
+groups but silently fails to read the inode data for groups it cannot reach,
+showing garbage file sizes in `ls` output.
+
+Inode numbers observed:
+- `vmlinuz-6.18.19`: inode 5225 (group 0) — loadable
+- `extlinux.conf.bak`: inode 29943 (group 3) — loadable
+- `boot.scr` (created on live board): inode 680450 (group 83) — **not loadable**
+- `extlinux.conf` (copied from host): inode ~680xxx (group 83) — **not loadable**
+
+**Fix applied to get board booting:**
+`extlinux.conf` was re-created as a hard link to `extlinux.conf.bak`, reusing
+inode 29943 (group 3):
+```sh
+sudo rm /boot/extlinux/extlinux.conf
+sudo ln /boot/extlinux/extlinux.conf.bak /boot/extlinux/extlinux.conf
+```
+(Done from the host with the SD card mounted at `/media/lou/lpi3h-root/`.)
+
+**Implication for build scripts:**
+`boot.scr` and `armbianEnv.txt` **must be created at image-build time**
+(inside `99_fix_partuuid.sh` during `mkcustomrootfs.sh`), never on a live
+running board and never by copying onto a mounted card. Created during the
+build, they receive early inode numbers that U-Boot can reach.
+
+Do not attempt to create these files via SSH on a running board. Any files
+written to the live filesystem will land in high block groups and be invisible
+to U-Boot.
+
+### Problem 2: boot.cmd variables silently expanded by the shell
+
+The original `sudo tee /boot/boot.cmd << EOF` heredoc (without single quotes
+around EOF) caused the shell to expand `${devtype}`, `${devnum}`,
+`${distro_bootpart}`, etc. to empty strings before tee received them. The
+file on disk contained blank variable references and a truncated
+`setenv bootargs` line. When boot.scr was compiled from this corrupted
+boot.cmd, it produced a script that would always set empty bootargs and
+attempt to load the kernel from device `""` — it could never succeed.
+
+Fix: use `<< 'EOF'` (single-quoted) to suppress shell expansion, or write
+the file directly from the build host onto the mounted filesystem.
+
+The correct boot.cmd in `docs/armbian-boot-migration.md` uses `<< 'EOF'`
+and is the reference for what `99_fix_partuuid.sh` should write.
+
+### Problem 3: MBR disk signature mismatch
+
+After fixing extlinux.conf (via hard link), the kernel started but hung at:
+```
+Waiting for root device PARTUUID=4c503348-01...
+```
+The SD card appeared as `mmcblk1p1` but the kernel never mounted root.
+
+**Root cause:** The MBR disk signature on this card was `0xde54d316` (PARTUUID
+`de54d316-01`), not `0x4c503348`. The card had not been originally flashed with
+`mksdimg.sh`, which is the only step that writes the fixed signature. The
+extlinux.conf (written by `99_fix_partuuid.sh`) correctly says `4c503348-01`,
+but nothing ever set the MBR to match.
+
+Verified with:
+```sh
+sudo dd if=/dev/sdd bs=1 skip=440 count=4 2>/dev/null | xxd
+# showed: 16 d3 54 de  (= 0xde54d316 LE)
+```
+
+**Fix:** write the correct signature directly to the MBR:
+```sh
+printf '\x48\x33\x50\x4c' | sudo dd bs=1 seek=440 of=/dev/sdd conv=notrunc
+# verify: should show 48 33 50 4c  (= 0x4c503348 LE = PARTUUID 4c503348-01)
+```
+
+**Note for live boards not flashed via mksdimg.sh:** any board set up by other
+means (manual dd, Raspberry Pi Imager with a different image, etc.) will have a
+random MBR signature. Either write the fixed signature as above, or change the
+`root=` in extlinux.conf to match the actual PARTUUID (`blkid` or U-Boot
+`mmc part` to read it).
+
+### How the board was manually booted during diagnosis
+
+With the card mounted on the host, vmlinuz was confirmed loadable. The board
+was booted by interrupting autoboot, then from the U-Boot prompt:
+
+```
+load mmc 0:1 0x40080000 /boot/vmlinuz-6.18.19
+load mmc 0:1 0x4FA00000 /usr/lib/linux-image-6.18.19/allwinner/sun50i-h618-longanpi-3h.dtb
+setenv bootargs "root=PARTUUID=4c503348-01 console=tty0 console=ttyS0,115200 rootwait earlycon clk_ignore_unused rw video=HDMI-A-1:1280x720@60"
+booti 0x40080000 - 0x4FA00000
+```
+
+This confirmed the kernel, DTB, and PARTUUID were all correct — the only
+issue was U-Boot's inability to load the boot script files.
