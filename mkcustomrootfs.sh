@@ -45,7 +45,10 @@ else
 fi
 
 e2fsck -fp build/input/rootfs.ext4
-resize2fs -M build/input/rootfs.ext4
+BLKSIZE=$(tune2fs -l build/input/rootfs.ext4 | awk '/^Block size/{print $3}')
+MIN_BLOCKS=$(resize2fs -P build/input/rootfs.ext4 2>/dev/null | awk '{print $NF}')
+EXTRA_BLOCKS=$(( 500 * 1024 * 1024 / BLKSIZE ))
+resize2fs build/input/rootfs.ext4 $(( MIN_BLOCKS + EXTRA_BLOCKS ))
 
 rm -rf ./build/rootfs
 
