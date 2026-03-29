@@ -3,6 +3,25 @@
 Build scripts for the LonganPi 3H (Allwinner H618, arm64) SD card image.
 Tested on Ubuntu 22.04 LTS.
 
+## Hardware status (kernel 6.18.19)
+
+| Peripheral | Status | Notes |
+|---|---|---|
+| CPU | ✅ Working | 4× Cortex-A53 @ up to 1416 MHz |
+| HDMI display | ✅ Working | DE33 driver; requires `video=HDMI-A-1:1280x720@60` in cmdline |
+| HDMI audio | ✅ Working | AHUB driver (`sun50i-ahub`); appears as `card 0: HDMI Audio` |
+| GPU (Mali-G31) | ✅ Working | Panfrost driver; `/dev/dri/renderD128`; 432 MHz |
+| VPU (Cedrus) | ✅ Working | H.264 / HEVC hardware decode; `/dev/video0` |
+| WiFi | ✅ Working | AIC8800D80 USB dongle (included on board) |
+| Bluetooth | ✅ Working | AIC8800 BT via USB (`hci0`) |
+| Ethernet | ✅ Working | `end0` (emac1) |
+| USB host | ✅ Working | 3× USB 2.0 + 3× USB 1.1 |
+| SD card | ✅ Working | Boots from SD; `mmcblk1` |
+| I2C | ✅ Working | `/dev/i2c-0..2` |
+| Serial console | ✅ Working | `/dev/ttyS0` at 115200 baud |
+| USB OTG | ⚠️ Partial | Controller present (`musb-hdrc`); peripheral mode configured; not tested |
+| PWM / fan | ✅ Working | PWM driver patched in |
+
 ## Dependencies
 
 ### With Docker (recommended)
