@@ -8,7 +8,6 @@ set -a && source .env && set +a
 if [ -z "$MMDEBSTRAP" ]; then MMDEBSTRAP=mmdebstrap; fi
 if [ -z "$MIRROR" ]; then MIRROR=http://deb.debian.org; fi
 if [ -z "$CODENAME" ]; then CODENAME=bookworm; NEOFETCH="neofetch"; fi
-if [ -z "$USER_PACKAGE" ]; then USER_PACKAGE=""; fi
 
 BASE_PACKAGE="ca-certificates locales dosfstools binutils file \
 	tree sudo bash-completion memtester openssh-server wireless-regdb \
@@ -21,6 +20,11 @@ BASE_PACKAGE="ca-certificates locales dosfstools binutils file \
 	device-tree-compiler debian-archive-keyring linux-cpupower \
         network-manager \
 	"
+if [ -z "$USER_PACKAGE" ]; then 
+    # common packages I use that are not strictly necessary 
+    USER_PACKAGE="build-essential libevent-dev libjpeg-dev libbsd-dev \
+	    git pkg-config curl gpiod lm-sensors libgpiod-dev seatd mpv"
+fi
 
 if [ -z "$DESKTOP_PACKAGE" ]; then
     DESKTOP_PACKAGE="chromium task-xfce-desktop \
@@ -46,7 +50,7 @@ mkdir -p "$MNT"
 
 # removed options:
 # --hook-dir=./hooks \
-# --aptopt='Acquire::HTTP::Proxy "http://aptcacheserver:8000";' \
+# --aptopt='Acquire::HTTP::Proxy "http://192.168.254.81:8080";' \
 
 # Pipe mmdebstrap tar output directly into the mounted ext4 (no intermediate tar file)
 if [ $(id -u) -ne 0 ]; then
@@ -55,7 +59,7 @@ if [ $(id -u) -ne 0 ]; then
 deb [trusted=yes] ${MIRROR}/debian/ ${CODENAME} main contrib non-free non-free-firmware
 deb [trusted=yes] ${MIRROR}/debian/ ${CODENAME}-updates main contrib non-free non-free-firmware
 " | $MMDEBSTRAP \
-        --aptopt='Acquire::HTTP::Proxy "http://192.168.254.81:8080";' \
+        --aptopt='Acquire::HTTP::Proxy "http://aptcacheserver:8000";' \
         --aptopt='Dir::Etc::Trusted "/usr/share/keyrings/debian-archive-keyring.gpg"' --architectures=arm64 -v -d \
         --aptopt='Dir::Etc::Trusted "/etc/apt/keyrings/debian-archive-keyring.gpg"' \
         --include="${BASE_PACKAGE} ${DESKTOP_PACKAGE} ${USER_PACKAGE}" \
@@ -67,7 +71,7 @@ else
 deb [trusted=yes] ${MIRROR}/debian/ ${CODENAME} main contrib non-free non-free-firmware
 deb [trusted=yes] ${MIRROR}/debian/ ${CODENAME}-updates main contrib non-free non-free-firmware
 " | $MMDEBSTRAP \
-        --aptopt='Acquire::HTTP::Proxy "http://192.168.254.81:8080";' \
+        --aptopt='Acquire::HTTP::Proxy "http://aptcacheserver:8000";' \
         --aptopt='Dir::Etc::Trusted "/usr/share/keyrings/debian-archive-keyring.gpg"' --architectures=arm64 -v -d \
         --aptopt='Dir::Etc::Trusted "/etc/apt/keyrings/debian-archive-keyring.gpg"' \
         --include="${BASE_PACKAGE} ${DESKTOP_PACKAGE} ${USER_PACKAGE}" \
