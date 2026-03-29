@@ -5,15 +5,20 @@ Tested on Ubuntu 22.04 LTS and WSL2 Ubuntu-22.04.
 
 ## Dependencies
 
+Builds run inside Docker. Build the image once from the repo root:
+
 ```shell
-sudo apt update
-sudo apt install \
-    qemu-user-static binfmt-support \
-    gcc-aarch64-linux-gnu make build-essential bison flex \
-    libncurses-dev swig libssl-dev bc python3-setuptools python3-dev \
-    mmdebstrap debian-archive-keyring debian-keyring \
-    git genimage fuse2fs fuse \
-    rsync kmod cpio debhelper
+docker build --network=host -f docker/Dockerfile -t lpi3h-build .
+```
+
+The image includes all cross-compilation tools, `mmdebstrap`, `genimage`,
+`qemu-user-static`, and `e2fsprogs`. See `docker/docker-build.md` for
+full usage including kernel and rootfs build commands.
+
+Host dependencies (outside Docker — only needed for `mksdimg.sh`):
+
+```shell
+sudo apt install genimage
 ```
 
 ## Configuration
@@ -94,7 +99,7 @@ produces Debian `.deb` packages placed in `build/`. The resulting
 `linux-image-*.deb` is installed into the rootfs by `custom/01_install_debs.sh`
 during image customization.
 
-The kernel source at `build/linux` is based on 6.18.19 with 51 LonganPi 3H
+The kernel source at `build/linux` is based on 6.18.19 with 58 LonganPi 3H
 patches applied on top. Patch files are in `linux.new/`; see
 `linux.new/STATUS.md` for details.
 
@@ -155,8 +160,9 @@ bash mkcustomrootfs.sh
 ```
 
 Sparse-copies `build/rootfs_base.ext4` to `build/input/rootfs.ext4`, mounts
-it via `fuse2fs` (no root required), runs all scripts in `custom/` via
-`customize_rootfs.sh`, then shrinks the filesystem with `resize2fs -M`.
+it (auto-escalates to root via sudo), runs all scripts in `custom/` via
+`customize_rootfs.sh`, then resizes the filesystem to minimum used + 500 MB
+headroom using `resize2fs -P` + `resize2fs`.
 
 Requires: `build/rootfs_base.ext4`
 Output: `build/input/rootfs.ext4`
@@ -222,8 +228,9 @@ fails to boot.
 Creates the primary user account using direct file manipulation (no `chroot`
 required). Writes `/etc/passwd`, `/etc/shadow` (SHA-512 hashed password via
 `openssl passwd -6`), `/etc/group`, and sets the root password. Adds the user
-to: `dialout cdrom audio video plugdev users netdev input sudo`. Enables avahi
-workstation mode.
+to: `dialout cdrom audio video render plugdev users netdev input sudo`. The
+`render` group is required for GPU/DRI access (`/dev/dri/renderD128`). Enables
+avahi workstation mode.
 
 Requires: `USER_NAME`, `USER_PASS` in `.env`.
 
@@ -273,24 +280,24 @@ Requires: `MACID` in `.env`.
 
 ### 09_lpi3h_config.sh
 
-Board-specific configuration applied last:
+Board-specific P2P/WiFi suppression:
 
-- Writes `/etc/default/u-boot` with `root=PARTUUID=4c503348-01` and the
-  correct console/boot parameters.
-- Creates `/boot/extlinux/extlinux.conf` from scratch, detecting the installed
-  kernel version from `/boot/vmlinuz-*`. The `initrd` line is included only if
-  an initramfs exists. Uses `PARTUUID=4c503348-01` as the root device — this
-  is stable because `mksdimg.sh` always writes `disk-signature = 0x4c503348`
-  into the MBR.
 - Writes `/etc/udev/rules.d/99-no-p2p.rules` to remove the P2P virtual
   interface created by wpa_supplicant.
 - Writes `/etc/wpa_supplicant/wpa_supplicant.conf` with `p2p_disabled=1`.
 - Adds a systemd drop-in for `wpa_supplicant.service` to apply the above
   config.
 
-The PARTUUID `4c503348-01` must match the `disk-signature` in `mksdimg.sh`.
-The kernel resolves PARTUUID directly from the MBR partition table without
-requiring an initramfs (MMC, ext4, and devtmpfs are all built into the kernel).
+### 99_fix_partuuid.sh
+
+Writes `/etc/default/u-boot` and `/boot/extlinux/extlinux.conf` with the
+correct `PARTUUID=4c503348-01`. Runs last to override any PARTUUID that
+`u-boot-update` may have generated during kernel deb installation in
+`01_install_debs.sh`.
+
+The fixed MBR disk signature (`0x4c503348`) is written by `mksdimg.sh`,
+making `PARTUUID=4c503348-01` stable across reflashes. The kernel resolves
+PARTUUID directly from the MBR without an initramfs.
 
 ## Flashing
 
