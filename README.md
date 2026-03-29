@@ -1,7 +1,7 @@
 # LonganPi-3H-SDK
 
 Build scripts for the LonganPi 3H (Allwinner H618, arm64) SD card image.
-Tested on Ubuntu 22.04 LTS and WSL2 Ubuntu-22.04.
+Tested on Ubuntu 22.04 LTS.
 
 ## Dependencies
 
