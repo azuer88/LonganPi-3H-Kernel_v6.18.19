@@ -5,7 +5,9 @@ Tested on Ubuntu 22.04 LTS.
 
 ## Dependencies
 
-Builds run inside Docker. Build the image once from the repo root:
+### With Docker (recommended)
+
+Build the image once from the repo root:
 
 ```shell
 docker build --network=host -f docker/Dockerfile -t lpi3h-build .
@@ -15,10 +17,25 @@ The image includes all cross-compilation tools, `mmdebstrap`, `genimage`,
 `qemu-user-static`, and `e2fsprogs`. See `docker/docker-build.md` for
 full usage including kernel and rootfs build commands.
 
-Host dependencies (outside Docker — only needed for `mksdimg.sh`):
+Host still needs `genimage` for `mksdimg.sh`:
 
 ```shell
 sudo apt install genimage
+```
+
+### Without Docker
+
+Install all dependencies directly on the host (Ubuntu 22.04):
+
+```shell
+sudo apt update
+sudo apt install \
+    gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+    make bc flex bison libssl-dev libelf-dev libdw-dev \
+    debhelper dpkg-dev fakeroot cpio rsync kmod lsb-release python3 \
+    mmdebstrap qemu-user-static binfmt-support \
+    genext2fs e2fsprogs debian-archive-keyring \
+    genimage fuse2fs
 ```
 
 ## Configuration
