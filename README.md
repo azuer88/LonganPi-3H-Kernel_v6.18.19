@@ -8,7 +8,7 @@ Tested on Ubuntu 22.04 LTS.
 | Peripheral | Status | Notes |
 |---|---|---|
 | CPU | ✅ Working | 4× Cortex-A53 @ up to 1416 MHz |
-| HDMI display | ✅ Working | DE33 driver; requires `video=HDMI-A-1:1280x720@60` in cmdline |
+| HDMI display | ✅ Working | DE33 driver; `video=HDMI-A-1:1280x720@60` in cmdline — needed if monitor is in power-save at boot, may not be required for all setups |
 | HDMI audio | ✅ Working | AHUB driver (`sun50i-ahub`); appears as `card 0: HDMI Audio` |
 | GPU (Mali-G31) | ✅ Working | Panfrost driver; `/dev/dri/renderD128`; 432 MHz |
 | VPU (Cedrus) | ✅ Working | H.264 / HEVC hardware decode; `/dev/video0` |
