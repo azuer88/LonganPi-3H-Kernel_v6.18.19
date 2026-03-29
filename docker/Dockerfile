@@ -44,6 +44,7 @@ RUN apt-get update && apt-get install -y \
     genext2fs \
     e2fsprogs \
     debian-archive-keyring \
+    u-boot-tools \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /sdk

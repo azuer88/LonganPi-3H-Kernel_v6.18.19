@@ -326,14 +326,24 @@ Board-specific P2P/WiFi suppression:
 
 ### 99_fix_partuuid.sh
 
-Writes `/etc/default/u-boot` and `/boot/extlinux/extlinux.conf` with the
-correct `PARTUUID=4c503348-01`. Runs last to override any PARTUUID that
-`u-boot-update` may have generated during kernel deb installation in
-`01_install_debs.sh`.
+Writes Armbian-style boot files and `/etc/default/u-boot` with the correct
+`PARTUUID=4c503348-01`. Runs last to override anything `u-boot-update` may
+have generated during kernel deb installation in `01_install_debs.sh`.
+
+Files written:
+- `/boot/boot.cmd` — U-Boot script source (human-readable)
+- `/boot/boot.scr` — compiled with `mkimage` (what U-Boot loads)
+- `/boot/armbianEnv.txt` — boot variables read by boot.cmd at runtime
+- `/etc/default/u-boot` — for u-boot-update compatibility
+- `/boot/extlinux/extlinux.conf` → renamed to `.bak` (U-Boot scans extlinux
+  before boot.scr; removing it forces U-Boot to use boot.scr)
 
 The fixed MBR disk signature (`0x4c503348`) is written by `mksdimg.sh`,
 making `PARTUUID=4c503348-01` stable across reflashes. The kernel resolves
 PARTUUID directly from the MBR without an initramfs.
+
+Requires `mkimage` (`u-boot-tools`) on the build host — included in the
+Docker image.
 
 ## Flashing
 
