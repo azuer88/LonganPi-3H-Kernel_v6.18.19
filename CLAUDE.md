@@ -84,10 +84,14 @@ mksdimg.sh → build/images/sdcard-MACID.img.xz
 7. `07_wifi.sh` — NetworkManager profile for `wlx$MACID` interface (USB WiFi naming)
 8. `08_hostname.sh` — sets `lpi3h-XXXX` (last 4 hex of MACID)
 9. `09_lpi3h_config.sh` — udev rule to suppress P2P WiFi interface
-10. `99_fix_partuuid.sh` — writes `/boot/extlinux/extlinux.conf` and `/etc/default/u-boot` with correct PARTUUID; removes Armbian-style boot files if present
+10. `99_fix_partuuid.sh` — writes `/boot/extlinux/extlinux.conf` (reference copy) and `/etc/default/u-boot` with correct PARTUUID (`4c503348-02`); removes Armbian-style boot files if present
 
 ### Partition layout and PARTUUID
-The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`, making the rootfs partition always `PARTUUID=4c503348-01`. This PARTUUID is used in `extlinux.conf` (written by `99_fix_partuuid.sh`). **Do not change this signature** without updating that script — the kernel boots without an initramfs and resolves root directly from PARTUUID.
+The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`. The SD card has two partitions:
+- **Partition 1** (FAT32, offset 1M, size 63M): boot partition — `PARTUUID=4c503348-01`. Contains `vmlinuz-*`, DTB, and `extlinux/extlinux.conf`. U-Boot reads from here via its FAT driver (avoids the ext4 block-group > 3 inode-table read limitation).
+- **Partition 2** (ext4, offset 64M): rootfs — `PARTUUID=4c503348-02`. Used as `root=` in kernel cmdline.
+
+`mkcustomrootfs.sh` creates `build/input/boot.fat` (the authoritative boot config). `99_fix_partuuid.sh` writes a matching `extlinux.conf` to `$ROOTFS/boot/extlinux/extlinux.conf` for reference only — U-Boot does **not** read that copy. **Do not change this signature** without updating both scripts — the kernel boots without an initramfs and resolves root directly from PARTUUID.
 
 ### Kernel source (`build/linux`)
 - Base: Linux 6.18.19 (commit `4aea1dc4c`)
@@ -107,7 +111,7 @@ Notable patches:
 
 ### U-Boot source (`build/uboot`)
 - Cloned and patched by `mkuboot.sh` on first run (base: `da2e3196e`)
-- 14 patches in `uboot/0001-*.patch` … `uboot/0014-*.patch` (upstream sipeed + local fixes)
+- 13 patches in `uboot/0001-*.patch` … `uboot/0013-*.patch` (upstream sipeed + local fixes)
 - Must be built in Docker (same `lpi3h-build` image as kernel)
 - Output: `build/u-boot-sunxi-with-spl.bin` — flash raw to SD: `dd if=... of=/dev/mmcblkX bs=1024 seek=8`
 

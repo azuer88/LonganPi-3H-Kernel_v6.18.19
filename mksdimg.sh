@@ -12,6 +12,11 @@ if [ ! -e ./build/input/u-boot-sunxi-with-spl.bin ]; then
     exit 1
 fi
 
+if [ ! -e ./build/input/boot.fat ]; then
+    echo "./build/input/boot.fat not found — run mkcustomrootfs.sh first"
+    exit 1
+fi
+
 # load .env
 set -a && source .env && set +a
 
@@ -25,8 +30,9 @@ if [ "${NOGUI:-1}" = "0" ]; then
     IMAGE_NAME="${IMAGE_NAME}-GUI"
 fi
 
-# Fixed MBR disk signature so PARTUUID is stable across flashes.
-# PARTUUID for rootfs partition = 4c503348-01
+# Fixed MBR disk signature so PARTUUIDs are stable across flashes.
+# Partition 1 (FAT boot):  PARTUUID=4c503348-01
+# Partition 2 (ext4 root): PARTUUID=4c503348-02
 DISK_SIGNATURE="4c503348"
 
 echo "creating image..."
@@ -45,10 +51,16 @@ image ${IMAGE_NAME}.img {
 		offset = 8K
 	}
 
+	partition boot {
+		partition-type = 0x0c
+		image = "boot.fat"
+		offset = 1M
+	}
+
 	partition rootfs {
 		partition-type = 0x83
 		image = "rootfs.ext4"
-		offset = 8M
+		offset = 64M
 	}
 }
 GENEOF

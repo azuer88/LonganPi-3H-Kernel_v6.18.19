@@ -48,6 +48,7 @@ RUN apt-get update && apt-get install -y \
     e2fsprogs \
     debian-archive-keyring \
     u-boot-tools \
+    genimage \
     git \
     && rm -rf /var/lib/apt/lists/*
 
