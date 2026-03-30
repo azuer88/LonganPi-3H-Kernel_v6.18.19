@@ -455,8 +455,8 @@ Pins not on header (reserved):
 |------|------|-----|
 | PG2  | 194  | LED0 — heartbeat (kernel gpio-leds, `GPIO_ACTIVE_HIGH`) |
 | PG4  | 196  | LED1 — kernel gpio-leds (`GPIO_ACTIVE_LOW`); not exported to header |
-| PH0  | 224  | UART0_TX — serial console (`/dev/ttyS0`); also on side debug header (2×2: GND, 5V, TX, RX) |
-| PH1  | 225  | UART0_RX — serial console (`/dev/ttyS0`); also on side debug header (2×2: GND, 5V, TX, RX) |
+| PH0  | 224  | UART0_TX — serial console (`/dev/ttyS0`); also on side debug header (2×2: 5V, TX, GND, RX) |
+| PH1  | 225  | UART0_RX — serial console (`/dev/ttyS0`); also on side debug header (2×2: 5V, TX, GND, RX) |
 
 The side debug header also exposes a 5V pin connected to the board's 5V rail. **Do not connect 5V on the debug header if the board is already powered via USB-C** — both supplies would be shorted together.
 
