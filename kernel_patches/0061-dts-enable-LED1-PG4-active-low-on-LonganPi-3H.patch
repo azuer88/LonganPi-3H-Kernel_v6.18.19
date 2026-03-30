@@ -1,0 +1,31 @@
+From 8c1dac540c4c64c0738ffb45419426e84b796725 Mon Sep 17 00:00:00 2001
+From: Lou Viannay <lou.viannay@octavesolution.com>
+Date: Tue, 31 Mar 2026 07:48:33 +0800
+Subject: [PATCH 3/4] dts: enable LED1 (PG4, active-low) on LonganPi 3H
+
+LED1 (PG4) is wired active-low on the board. Correct the polarity and
+enable the node so it is exported as a kernel gpio-led.
+
+Signed-off-by: Blue Cuenca <blue.cuenca@gmail.com>
+---
+ arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+index 911821dc8..2291f5c46 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+@@ -58,8 +58,8 @@
+ 		};
+ 
+ 		led-1 {
+-			gpios = <&pio 6 4 GPIO_ACTIVE_HIGH>; /* PG4 */
+-			status = "disabled";
++			gpios = <&pio 6 4 GPIO_ACTIVE_LOW>; /* PG4 */
++			status = "okay";
+ 		};
+ 	};
+ 
+-- 
+2.17.1
+

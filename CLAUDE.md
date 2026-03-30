@@ -108,8 +108,8 @@ The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`. The SD card
 
 ### Kernel source (`build/linux`)
 - Base: Linux 6.18.19 (commit `4aea1dc4c`)
-- 59 patches applied; current HEAD: `930f33032` (pending 0059 commit)
-- Patch files: `kernel_patches/0001-*.patch` … `0059-*.patch`
+- 62 patches applied; current HEAD: `09a8d4145`
+- Patch files: `kernel_patches/0001-*.patch` … `0062-*.patch`
 - Full apply history: `kernel_patches/STATUS.md`
 - Config: `arch/arm64/configs/longanpi_3h_defconfig`
 - To revert all patches: `cd build/linux && git reset --hard 4aea1dc4c`
@@ -121,6 +121,9 @@ Notable patches:
 - `0055` — dts: constrain CMA pool below 4 GB (sun4i DMA_BIT_MASK(32) fix for HDMI display)
 - `0056` — defconfig: add HDMI I2S audio drivers
 - `0059` — defconfig: enable USB serial subsystem + CH341 driver (`/dev/ttyUSB*`)
+- `0060` — defconfig: enable `WATCHDOG_HANDLE_BOOT_ENABLED` (kick bootloader watchdog during boot)
+- `0061` — dts: enable LED1 (PG4, active-low)
+- `0062` — dts: add spidev node on SPI1 → `/dev/spidev1.0` (pins PH5–PH8 on 40-pin header)
 
 ### U-Boot source (`build/uboot`)
 - Cloned and patched by `mkuboot.sh` on first run (base: `da2e3196e`)

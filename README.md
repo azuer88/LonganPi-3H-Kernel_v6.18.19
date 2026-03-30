@@ -20,7 +20,7 @@ Based on [sipeed/LonganPi-3H-SDK](https://github.com/sipeed/LonganPi-3H-SDK).
 | USB host | ✅ Working | 3× USB 2.0 + 3× USB 1.1 |
 | SD card | ✅ Working | Boots from SD; `mmcblk1` |
 | I2C | ✅ Working | `/dev/i2c-0..2` |
-| SPI | ✅ Controller present | `spi_sun6i` on `spi@5011000` (SPI0); no spidev DTS node by default — add one to get `/dev/spidev0.0` |
+| SPI | ✅ Working | `spi_sun6i` on SPI1 (PH5–PH8 header pins); `/dev/spidev1.0` via `rohm,dh2228fv` spidev node |
 | Serial console | ✅ Working | `/dev/ttyS0` at 115200 baud |
 | USB OTG | ⚠️ Partial | Controller present (`musb-hdrc`); peripheral mode configured; not tested |
 | USB serial (CH340/CH341) | ✅ Working | `/dev/ttyUSB*`; `CONFIG_USB_SERIAL_CH341=m` |

@@ -16,8 +16,8 @@
 
 ---
 
-## Applied (56 commits on top of 6.18.19 base: 4aea1dc4c)
-All patches applied except 0048. Current HEAD: 887285633
+## Applied (62 commits on top of 6.18.19 base: 4aea1dc4c)
+All patches applied except 0048. Current HEAD: 09a8d4145
 
   829bec518  add lpi3h defconfig                                    ← 0002
   6af6b6e0f  de33 ccu support                                       ← 0010 (fuzz)
@@ -76,7 +76,10 @@ All patches applied except 0048. Current HEAD: 887285633
   887285633  defconfig: add HDMI I2S audio drivers                 ← 0056
   e89002e43  sound/dts: add AHUB driver for HDMI audio            ← 0057
   930f33032  defconfig: add CONFIG_SND_SIMPLE_CARD=m              ← 0058
-  (pending)  defconfig: enable USB_SERIAL + USB_SERIAL_CH341     ← 0059
+  79af3c50a  defconfig: enable USB_SERIAL + USB_SERIAL_CH341     ← 0059
+  5183590ea  defconfig: enable WATCHDOG_HANDLE_BOOT_ENABLED       ← 0060
+  8c1dac540  dts: enable LED1 (PG4, active-low)                   ← 0061
+  09a8d4145  dts: add spidev node on SPI1 (PH5-PH8 header)       ← 0062
 
 Manual fix notes:
   *  0043: PG17/PG18 pin order in h616.dtsi; uart1 pinctrl-names in LPI3H DTS
