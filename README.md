@@ -400,54 +400,54 @@ Remember to set `NOGUI` in `.env` to match the base image you have linked —
 ## 40-pin GPIO header
 
 All GPIO pins are on `gpiochip1` (`300b000.pinctrl`, main PIO). Line number =
-port-index × 32 + pin (PG = port 6, PH = port 7).
+port-index × 32 + pin (PG = port 6, PH = port 7, PI = port 8).
 
 GPIO access requires membership in the `gpio` group (created by `02_user_setup.sh`)
 and the udev rule `60-gpio.rules` (sets `GROUP=gpio MODE=0660` on `/dev/gpiochip*`).
 Use `gpiodetect` / `gpioget` / `gpioset` from `gpiod`.
 
-| Pin | Signal | Port | Line | Alt functions |
-|-----|--------|------|------|---------------|
-|  1  | 3.3V   | —    | —    | Power |
-|  2  | 5V     | —    | —    | Power |
-|  3  | PG16   | G    | 208  | MCLKPWM / AC_ADCXPN |
-|  4  | 5V     | —    | —    | Power |
-|  5  | PG15   | G    | 207  | I2S2_DIN1 |
-|  6  | GND    | —    | —    | |
-|  7  | PH2    | H    | 226  | UART5_RX / **PWM2** |
-|  8  | PG6    | G    | 198  | UART1_TX / JTAG_DI |
-|  9  | GND    | —    | —    | |
-| 10  | PG7    | G    | 199  | UART1_RX / JTAG_CK |
-| 11  | PG10   | G    | 202  | I2S2_MCLK / CKFOUT |
-| 12  | PG11   | G    | 203  | I2S2_BCLK |
-| 13  | PG8    | G    | 200  | UART1_CTS / TWI1_SCK |
-| 14  | GND    | —    | —    | |
-| 15  | PG9    | G    | 201  | UART1_RTS / TWI1_SDA |
-| 16  | PG1    | G    | 193  | SDC1_CLK |
-| 17  | 3.3V   | —    | —    | Power |
-| 18  | PH10   | H    | 234  | IR_RX |
-| 19  | PH7    | H    | 231  | UART2_RTS / **SPI1_CS0** / I2S3_LRCK |
-| 20  | GND    | —    | —    | |
-| 21  | PH8    | H    | 232  | UART2_CTS / **SPI1_CLK** / I2S3 |
-| 22  | PH4    | H    | 228  | SPDIF_OUT |
-| 23  | PH6    | H    | 230  | UART2_RX / **SPI1_MISO** / I2S3_BCLK |
-| 24  | PH5    | H    | 229  | UART2_TX / **SPI1_MOSI** / I2S3_MCLK |
-| 25  | GND    | —    | —    | |
-| 26  | PH9    | H    | 233  | SPI1_MISO (alt) |
-| 27  | PG18   | G    | 210  | **I2C3_SCL** / TWI3_SCK / UART3_CTS |
-| 28  | PG17   | G    | 209  | **I2C3_SDA** / TWI3_SDA / UART3_RTS |
-| 29  | PG0    | G    | 192  | SDC1_CMD |
-| 30  | GND    | —    | —    | |
-| 31  | PG3    | G    | 195  | SDC1_D1 |
-| 32  | —      | —    | —    | — |
-| 33  | PH3    | H    | 227  | UART5_TX / **PWM1** / SPDIF_IN |
-| 34  | GND    | —    | —    | |
-| 35  | PG12   | G    | 204  | I2S2_LRCK |
-| 36  | PG5    | G    | 197  | SDC1_D3 |
-| 37  | —      | —    | —    | — |
-| 38  | PG13   | G    | 205  | I2S2_DOUT0 / AC_ADCRP |
-| 39  | GND    | —    | —    | |
-| 40  | PG14   | G    | 206  | I2S2_DIN0 / AC_ADCXP |
+| Pin | Signal | Port | Line | GPIO | Alt functions |
+|-----|--------|------|------|------|---------------|
+|  1  | 3.3V   | —    | —    | —    | 3.3V power |
+|  2  | 5V     | —    | —    | —    | 5V power |
+|  3  | PG16   | G    | 208  | yes  | MCLKPWM / AC_ADCXPN |
+|  4  | 5V     | —    | —    | —    | 5V power |
+|  5  | PG15   | G    | 207  | yes  | I2S2_DIN1 |
+|  6  | GND    | —    | —    | —    | GND |
+|  7  | PH2    | H    | 226  | no   | UART5_RX / **PWM2** (pwm-fan) |
+|  8  | PG6    | G    | 198  | no   | **UART1_TX** / JTAG_DI |
+|  9  | GND    | —    | —    | —    | GND |
+| 10  | PG7    | G    | 199  | no   | **UART1_RX** / JTAG_CK |
+| 11  | PG10   | G    | 202  | yes  | I2S2_MCLK / CKFOUT |
+| 12  | PG11   | G    | 203  | yes  | I2S2_BCLK |
+| 13  | PG8    | G    | 200  | yes  | UART1_CTS / TWI1_SCK |
+| 14  | GND    | —    | —    | —    | GND |
+| 15  | PG9    | G    | 201  | yes  | UART1_RTS / TWI1_SDA |
+| 16  | PG1    | G    | 193  | yes  | SDC1_CLK |
+| 17  | 3.3V   | —    | —    | —    | 3.3V power |
+| 18  | PH10   | H    | 234  | yes  | IR_RX |
+| 19  | PH7    | H    | 231  | no   | UART2_RTS / **SPI1_CS0** / I2S3_LRCK |
+| 20  | GND    | —    | —    | —    | GND |
+| 21  | PH8    | H    | 232  | no   | UART2_CTS / **SPI1_CLK** / I2S3 |
+| 22  | PH4    | H    | 228  | yes  | SPDIF_OUT |
+| 23  | PH6    | H    | 230  | no   | UART2_RX / **SPI1_MISO** / I2S3_BCLK |
+| 24  | PH5    | H    | 229  | no   | UART2_TX / **SPI1_MOSI** / I2S3_MCLK |
+| 25  | GND    | —    | —    | —    | GND |
+| 26  | PH9    | H    | 233  | yes  | SPI1_MISO (alt) |
+| 27  | PG18   | G    | 210  | no   | **I2C3_SCL** / TWI3_SCK / UART3_CTS |
+| 28  | PG17   | G    | 209  | no   | **I2C3_SDA** / TWI3_SDA / UART3_RTS |
+| 29  | PG0    | G    | 192  | yes  | SDC1_CMD |
+| 30  | GND    | —    | —    | —    | GND |
+| 31  | PG3    | G    | 195  | yes  | SDC1_D1 |
+| 32  | PG19   | G    | 211  | yes  | **PWM1** |
+| 33  | PH3    | H    | 227  | yes  | UART5_TX / **PWM1** / SPDIF_IN |
+| 34  | GND    | —    | —    | —    | GND |
+| 35  | PG12   | G    | 204  | yes  | I2S2_LRCK |
+| 36  | PG5    | G    | 197  | yes  | SDC1_D3 |
+| 37  | PI6    | I    | 262  | yes  | UART2_RX / TWI0_SDA |
+| 38  | PG13   | G    | 205  | yes  | I2S2_DOUT0 / AC_ADCRP |
+| 39  | GND    | —    | —    | —    | GND |
+| 40  | PG14   | G    | 206  | yes  | I2S2_DIN0 / AC_ADCXP |
 
 Pins not on header (reserved):
 
@@ -455,7 +455,9 @@ Pins not on header (reserved):
 |------|------|-----|
 | PG2  | 194  | LED0 — heartbeat (kernel gpio-leds, `GPIO_ACTIVE_HIGH`) |
 | PG4  | 196  | LED1 — kernel gpio-leds (`GPIO_ACTIVE_LOW`); not exported to header |
-| PH0  | 224  | UART0_TX — serial console (`/dev/ttyS0`) |
-| PH1  | 225  | UART0_RX — serial console (`/dev/ttyS0`) |
+| PH0  | 224  | UART0_TX — serial console (`/dev/ttyS0`); also on side debug header (2×2: GND, 5V, TX, RX) |
+| PH1  | 225  | UART0_RX — serial console (`/dev/ttyS0`); also on side debug header (2×2: GND, 5V, TX, RX) |
+
+The side debug header also exposes a 5V pin connected to the board's 5V rail. **Do not connect 5V on the debug header if the board is already powered via USB-C** — both supplies would be shorted together.
 
 Interfaces enabled in DTS: `uart1` (PG6/7), `i2c3` (PG18/17), `spi1` (PH5–8), `pwm` (PH2/3 via `pwm-fan`).
