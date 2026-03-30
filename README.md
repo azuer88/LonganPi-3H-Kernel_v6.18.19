@@ -3,6 +3,8 @@
 Build scripts for the LonganPi 3H (Allwinner H618, arm64) SD card image.
 Tested on Ubuntu 22.04 LTS.
 
+Based on [sipeed/LonganPi-3H-SDK](https://github.com/sipeed/LonganPi-3H-SDK).
+
 ## Hardware status (kernel 6.18.19)
 
 | Peripheral | Status | Notes |
@@ -33,7 +35,7 @@ docker build --network=host -f docker/Dockerfile -t lpi3h-build .
 ```
 
 The image includes all cross-compilation tools, `mmdebstrap`, `genimage`,
-`qemu-user-static`, and `e2fsprogs`. See [`docker/docker-build.md`](docker/docker-build.md) for
+`qemu-user-static`, and `e2fsprogs`. See [`docs/docker-build.md`](docs/docker-build.md) for
 full usage including kernel and rootfs build commands.
 
 Host still needs `genimage` for `mksdimg.sh`:
@@ -87,7 +89,8 @@ The build is split into two phases:
 ```
 mkatf.sh            → build/bl31.bin
 mkuboot.sh          → build/u-boot-sunxi-with-spl.bin   (requires bl31.bin)
-mkkernel.sh         → build/*.deb                        (kernel + headers)
+mklinux.sh          → build/linux/                       (clone + patch kernel source)
+mkkernel.sh         → build/*.deb                        (kernel + headers; requires build/linux)
 mkoverlay.sh        → build/overlay.deb                  (board-specific files)
 mkrootfs.sh         → build/rootfs_base.ext4             (slow: ~30–60 min)
 mkcustomrootfs.sh   → build/input/rootfs.ext4            (fast: ~5 min)
@@ -125,7 +128,24 @@ Output: `build/u-boot-sunxi-with-spl.bin`
 
 ---
 
-### Step 3 — Linux kernel
+### Step 3 — Linux kernel source
+
+```shell
+bash mklinux.sh
+```
+
+Shallow-clones Linux 6.18.19 from `torvalds/linux` and applies all 58 LonganPi 3H
+patches from `kernel_patches/` in order, producing `build/linux`. Skips silently
+if `build/linux` already exists; use `--force` to re-clone from scratch.
+
+Patch files and full apply history: `kernel_patches/STATUS.md`.
+
+Controlled by env vars: `LINUX_DIR`, `LINUX_URL`, `PATCHES_DIR`, `BASE_COMMIT`, `BASE_TAG`.
+Output: `build/linux/`
+
+---
+
+### Step 4 — Linux kernel build
 
 ```shell
 bash mkkernel.sh [--clean]
@@ -136,10 +156,6 @@ produces Debian `.deb` packages placed in `build/`. The resulting
 `linux-image-*.deb` is installed into the rootfs by `custom/01_install_debs.sh`
 during image customization.
 
-The kernel source at `build/linux` is based on 6.18.19 with 58 LonganPi 3H
-patches applied on top. Patch files are in `linux.new/`; see
-`linux.new/STATUS.md` for details.
-
 Options:
 - `--clean` — run `make clean` before building (slower, needed after config changes)
 
@@ -148,7 +164,7 @@ Output: `build/linux-image-*.deb`, `build/linux-headers-*.deb`
 
 ---
 
-### Step 4 — Overlay package
+### Step 5 — Overlay package
 
 ```shell
 bash mkoverlay.sh
@@ -162,7 +178,7 @@ Output: `build/overlay.deb`
 
 ---
 
-### Step 5 — Base rootfs
+### Step 6 — Base rootfs
 
 ```shell
 bash mkrootfs.sh
@@ -190,7 +206,7 @@ Output: `build/rootfs_base.ext4`
 
 ---
 
-### Step 6 — Per-device rootfs customization
+### Step 7 — Per-device rootfs customization
 
 ```shell
 bash mkcustomrootfs.sh
@@ -217,7 +233,7 @@ This mounts an overlay (fuse-overlayfs) over the base layer, runs
 
 ---
 
-### Step 7 — SD card image
+### Step 8 — SD card image
 
 ```shell
 bash mksdimg.sh
