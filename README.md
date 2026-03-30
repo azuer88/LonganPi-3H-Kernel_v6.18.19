@@ -359,3 +359,45 @@ Alternatively, from the command line:
 xz -d -c build/images/sdcard-MACID.img.xz | sudo dd of=/dev/sdX bs=4M status=progress
 sudo sync
 ```
+
+## Tips
+
+### Switching between GUI and no-GUI images without rebuilding the base rootfs
+
+`mkrootfs.sh` is slow (~30–60 min). If you want to produce both a desktop image
+and a headless image, build each base rootfs once and cache them by name, then
+use a symlink to select which one `mkcustomrootfs.sh` uses.
+
+**Build and save both base images:**
+
+```shell
+# Headless base
+NOGUI=1 bash mkrootfs.sh
+mv build/rootfs_base.ext4 build/rootfs_base_nogui.ext4
+
+# Desktop base
+NOGUI=0 bash mkrootfs.sh
+mv build/rootfs_base.ext4 build/rootfs_base_gui.ext4
+```
+
+**Switch between them with a symlink:**
+
+```shell
+cd build/
+
+# Use headless base
+ln -sf rootfs_base_nogui.ext4 rootfs_base.ext4
+
+# Use desktop base
+ln -sf rootfs_base_gui.ext4 rootfs_base.ext4
+```
+
+Then run `mkcustomrootfs.sh` and `mksdimg.sh` as normal. `mkcustomrootfs.sh`
+checks for `build/rootfs_base.ext4` with `-e`, which follows symlinks, so this
+works correctly. Note that `--reflink=auto` (used for the sparse copy) requires
+both files to be on the same filesystem; a symlink pointing across filesystems
+will still work but will fall back to a regular sparse copy.
+
+Remember to set `NOGUI` in `.env` to match the base image you have linked —
+`mkcustomrootfs.sh` reads `.env` and the image name will include a `-GUI` or
+`-NOGUI` suffix accordingly (added by `mksdimg.sh`).
