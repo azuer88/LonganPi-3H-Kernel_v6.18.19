@@ -35,8 +35,8 @@ if ! grep -q "^${USER_NAME}:" "$ROOTFS/etc/shadow"; then
     echo "Added $USER_NAME to /etc/shadow"
 fi
 
-# --- Root password ---
-ROOT_HASH=$(openssl passwd -6 "root")
+# --- Root password (random, generated at build time — effectively locks root) ---
+ROOT_HASH=$(openssl rand -base64 32 | openssl passwd -6 -stdin)
 sed -i "s|^root:[^:]*:|root:${ROOT_HASH}:|" "$ROOTFS/etc/shadow"
 
 # --- /etc/group: create primary group and add to supplementary groups ---

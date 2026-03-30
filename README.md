@@ -33,7 +33,7 @@ docker build --network=host -f docker/Dockerfile -t lpi3h-build .
 ```
 
 The image includes all cross-compilation tools, `mmdebstrap`, `genimage`,
-`qemu-user-static`, and `e2fsprogs`. See `docker/docker-build.md` for
+`qemu-user-static`, and `e2fsprogs`. See [`docker/docker-build.md`](docker/docker-build.md) for
 full usage including kernel and rootfs build commands.
 
 Host still needs `genimage` for `mksdimg.sh`:
@@ -264,7 +264,7 @@ fails to boot.
 
 Creates the primary user account using direct file manipulation (no `chroot`
 required). Writes `/etc/passwd`, `/etc/shadow` (SHA-512 hashed password via
-`openssl passwd -6`), `/etc/group`, and sets the root password. Adds the user
+`openssl passwd -6`), and `/etc/group`. Sets the user's password from `USER_PASS`. Sets the root password to a random 256-bit value generated at build time (effectively locks root — use `sudo` via the primary user instead). Adds the user
 to: `dialout cdrom audio video render plugdev users netdev input sudo`. The
 `render` group is required for GPU/DRI access (`/dev/dri/renderD128`). Enables
 avahi workstation mode.

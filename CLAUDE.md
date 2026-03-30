@@ -46,7 +46,7 @@ Requires a `.env` file (no `.env.example` exists — create from this list):
 ```
 MACID=e8519ee8f1a0        # board WiFi MAC, used for hostname/SSH keys/WiFi config
 USER_NAME=default
-USER_PASS=<sha512-hash>   # openssl passwd -6 yourpassword
+USER_PASS=yourpassword    # plaintext; hashed with openssl passwd -6 at build time
 AUTHORIZED_KEY=<pubkey>
 SSID=mywifi
 PKEY=wpapassphrase
@@ -75,7 +75,7 @@ mksdimg.sh → build/images/sdcard-MACID.img.xz
 `customize_rootfs.sh` runs `custom/NN_*.sh` in order, each receiving the rootfs mount path as `$1`. Scripts run under `fakeroot` when not root. Order matters:
 
 1. `01_install_debs.sh` — extracts `overlay.deb` + `linux-image-*.deb` into rootfs; repairs `/lib → usr/lib` symlink that `dpkg-deb --extract` can overwrite (breaks systemd boot if not repaired)
-2. `02_user_setup.sh` — creates user, sets passwords, group membership; writes directly to `/etc/passwd`, `/etc/shadow`, `/etc/group` (no chroot)
+2. `02_user_setup.sh` — creates user, sets user password from `USER_PASS` (hashed at build time); sets root password to a random 256-bit value (effectively locked); writes directly to `/etc/passwd`, `/etc/shadow`, `/etc/group` (no chroot)
 3. `03_ssh_host_keys.sh` — pre-generates SSH host keys keyed by `MACID`; cached in `build/host_keys/$MACID/` for stable fingerprints across reflashes
 4. `04_authorized_key.sh` — installs SSH pubkey; reads UID/GID from rootfs `/etc/passwd`
 5. `05_ntp.sh` — NTP/timezone config
