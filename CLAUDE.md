@@ -82,10 +82,11 @@ mksdimg.sh → build/images/sdcard-MACID.img.xz
 6. `06_update_apt_proxy.sh` — writes `/etc/apt/apt.conf.d/02Proxy` if `APT_PROXY` is set and reachable; no fallback
 7. `07_wifi.sh` — NetworkManager profile for `wlx$MACID` interface (USB WiFi naming)
 8. `08_hostname.sh` — sets `lpi3h-XXXX` (last 4 hex of MACID)
-9. `09_lpi3h_config.sh` — writes `/etc/default/u-boot`, creates `/boot/extlinux/extlinux.conf`, udev rule to suppress P2P WiFi interface
+9. `09_lpi3h_config.sh` — udev rule to suppress P2P WiFi interface
+10. `99_fix_partuuid.sh` — writes `/boot/extlinux/extlinux.conf` and `/etc/default/u-boot` with correct PARTUUID; removes Armbian-style boot files if present
 
 ### Partition layout and PARTUUID
-The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`, making the rootfs partition always `PARTUUID=4c503348-01`. This PARTUUID is used in `extlinux.conf` and `09_lpi3h_config.sh`. **Do not change this signature** without updating both places — the kernel boots without an initramfs and resolves root directly from PARTUUID.
+The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`, making the rootfs partition always `PARTUUID=4c503348-01`. This PARTUUID is used in `extlinux.conf` (written by `99_fix_partuuid.sh`). **Do not change this signature** without updating that script — the kernel boots without an initramfs and resolves root directly from PARTUUID.
 
 ### Kernel source (`build/linux`)
 - Base: Linux 6.18.19 (commit `4aea1dc4c`)

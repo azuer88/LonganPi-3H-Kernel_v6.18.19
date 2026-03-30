@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-# Write Armbian-style boot files (boot.cmd, boot.scr, armbianEnv.txt) and
-# /etc/default/u-boot with the correct PARTUUID.
-#
-# Runs last in the customization pipeline to override any extlinux.conf that
+# Write /boot/extlinux/extlinux.conf with the correct PARTUUID and kernel
+# paths. Runs last in the customization pipeline to override anything
 # u-boot-update may have generated during kernel deb installation.
 #
 # Boot files MUST be created here at image-build time, not on a live board.
@@ -23,8 +21,6 @@
 # DietPi installer, restore the signature with:
 #   printf '\x48\x33\x50\x4c' | sudo dd bs=1 seek=440 of=/dev/mmcblk0 conv=notrunc
 #
-# Requires: mkimage (u-boot-tools) on the build host / in Docker.
-#
 # $1 = target rootfs directory
 
 set -euo pipefail
@@ -40,66 +36,31 @@ fi
 
 echo "99_fix_partuuid: kernel=${KVER}  PARTUUID=${ROOT_PARTUUID}"
 
-# --- /etc/default/u-boot (kept for u-boot-update compatibility) ---
+# --- /etc/default/u-boot (for u-boot-update compatibility) ---
 mkdir -p "$ROOTFS/etc/default"
 cat > "$ROOTFS/etc/default/u-boot" << EOF
 ## /etc/default/u-boot
-U_BOOT_PARAMETERS="console=tty0 console=ttyS0,115200 rootwait earlycon clk_ignore_unused rw"
+U_BOOT_PARAMETERS="console=tty0 console=ttyS0,115200 rootwait earlycon clk_ignore_unused rw video=HDMI-A-1:1280x720@60"
 U_BOOT_ROOT="root=PARTUUID=${ROOT_PARTUUID}"
 EOF
 
-# --- /boot/boot.cmd ---
-# U-Boot variables (\${devtype} etc.) are escaped so the shell does not expand
-# them — only KVER and ROOT_PARTUUID are substituted by the shell here.
-mkdir -p "$ROOTFS/boot"
-cat > "$ROOTFS/boot/boot.cmd" << EOF
-# LonganPi 3H boot script — Armbian-compatible
-# Edit /boot/armbianEnv.txt to override defaults
+# --- /boot/extlinux/extlinux.conf ---
+mkdir -p "$ROOTFS/boot/extlinux"
+cat > "$ROOTFS/boot/extlinux/extlinux.conf" << EOF
+timeout 30
+default l0
 
-setenv rootdev PARTUUID=${ROOT_PARTUUID}
-setenv rootfstype ext4
-setenv fdtfile allwinner/sun50i-h618-longanpi-3h.dtb
-setenv overlay_prefix sun50i-h616
-setenv extraargs
-
-if test -e \${devtype} \${devnum}:\${distro_bootpart} /boot/armbianEnv.txt; then
-    load \${devtype} \${devnum}:\${distro_bootpart} \${scriptaddr} /boot/armbianEnv.txt
-    env import -t -r \${scriptaddr} \${filesize}
-fi
-
-setenv bootargs "root=\${rootdev} rootfstype=\${rootfstype} rootwait console=tty0 console=ttyS0,115200 earlycon clk_ignore_unused rw \${extraargs}"
-
-load \${devtype} \${devnum}:\${distro_bootpart} \${kernel_addr_r} /boot/vmlinuz-${KVER}
-load \${devtype} \${devnum}:\${distro_bootpart} \${fdt_addr_r} /usr/lib/linux-image-${KVER}/\${fdtfile}
-
-booti \${kernel_addr_r} - \${fdt_addr_r}
+label l0
+    kernel /boot/vmlinuz-${KVER}
+    fdt /usr/lib/linux-image-${KVER}/allwinner/sun50i-h618-longanpi-3h.dtb
+    append root=PARTUUID=${ROOT_PARTUUID} rootfstype=ext4 rootwait console=tty0 console=ttyS0,115200 earlycon clk_ignore_unused rw video=HDMI-A-1:1280x720@60
 EOF
 
-# --- /boot/boot.scr (compiled from boot.cmd) ---
-mkimage -C none -A arm64 -T script -d "$ROOTFS/boot/boot.cmd" "$ROOTFS/boot/boot.scr"
-
-# --- /boot/armbianEnv.txt ---
-# extraargs carries the HDMI mode hint. Needed on some monitors in power-save
-# at boot; may not be required for all setups.
-cat > "$ROOTFS/boot/armbianEnv.txt" << EOF
-verbosity=1
-bootlogo=false
-overlay_prefix=sun50i-h616
-fdtfile=allwinner/sun50i-h618-longanpi-3h.dtb
-rootdev=PARTUUID=${ROOT_PARTUUID}
-rootfstype=ext4
-extraargs=video=HDMI-A-1:1280x720@60
-EOF
-
-# --- Remove extlinux.conf ---
-# U-Boot checks extlinux/extlinux.conf BEFORE boot.scr. Remove it so U-Boot
-# falls through to boot.scr. Keep .bak as a manual recovery fallback.
-if [ -e "$ROOTFS/boot/extlinux/extlinux.conf" ]; then
-    mv "$ROOTFS/boot/extlinux/extlinux.conf" \
-       "$ROOTFS/boot/extlinux/extlinux.conf.bak"
-    echo "Renamed extlinux.conf → extlinux.conf.bak (recovery fallback)"
-fi
+# --- Remove Armbian-style boot files if present ---
+for f in boot.cmd boot.scr armbianEnv.txt; do
+    [ -e "$ROOTFS/boot/$f" ] && rm -f "$ROOTFS/boot/$f" && echo "Removed /boot/$f"
+done
 
 echo "Boot files written:"
-ls -lh "$ROOTFS/boot/boot.cmd" "$ROOTFS/boot/boot.scr" "$ROOTFS/boot/armbianEnv.txt"
+cat "$ROOTFS/boot/extlinux/extlinux.conf"
 echo "$0 done."

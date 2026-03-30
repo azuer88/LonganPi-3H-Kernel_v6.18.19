@@ -44,7 +44,15 @@ if ! grep -q "^${USER_NAME}:" "$ROOTFS/etc/group"; then
     echo "${USER_NAME}:x:${U_GID}:" >> "$ROOTFS/etc/group"
 fi
 
-for GRP in dialout cdrom audio video render plugdev users netdev input sudo; do
+# Ensure gpio group exists (needed for udev rule on /dev/gpiochip*)
+if ! grep -q "^gpio:" "$ROOTFS/etc/group"; then
+    # Pick next available GID above 999
+    NEXT_GID=$(awk -F: '$3 >= 1000 { print $3 }' "$ROOTFS/etc/group" | sort -n | tail -1)
+    NEXT_GID=$(( ${NEXT_GID:-1000} + 1 ))
+    echo "gpio:x:${NEXT_GID}:" >> "$ROOTFS/etc/group"
+fi
+
+for GRP in dialout cdrom audio video render plugdev users netdev input sudo gpio; do
     if grep -q "^${GRP}:" "$ROOTFS/etc/group"; then
         # append user to group if not already present
         if ! grep -q "^${GRP}:.*\b${USER_NAME}\b" "$ROOTFS/etc/group"; then

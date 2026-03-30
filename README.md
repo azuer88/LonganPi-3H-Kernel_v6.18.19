@@ -327,24 +327,19 @@ Board-specific P2P/WiFi suppression:
 
 ### 99_fix_partuuid.sh
 
-Writes Armbian-style boot files and `/etc/default/u-boot` with the correct
-`PARTUUID=4c503348-01`. Runs last to override anything `u-boot-update` may
-have generated during kernel deb installation in `01_install_debs.sh`.
+Writes `/boot/extlinux/extlinux.conf` and `/etc/default/u-boot` with the
+correct `PARTUUID=4c503348-01`. Runs last to override anything `u-boot-update`
+may have generated during kernel deb installation in `01_install_debs.sh`.
+Also removes Armbian-style boot files (`boot.scr`, `boot.cmd`, `armbianEnv.txt`)
+if present.
 
 Files written:
-- `/boot/boot.cmd` — U-Boot script source (human-readable)
-- `/boot/boot.scr` — compiled with `mkimage` (what U-Boot loads)
-- `/boot/armbianEnv.txt` — boot variables read by boot.cmd at runtime
+- `/boot/extlinux/extlinux.conf` — U-Boot syslinux-style boot config
 - `/etc/default/u-boot` — for u-boot-update compatibility
-- `/boot/extlinux/extlinux.conf` → renamed to `.bak` (U-Boot scans extlinux
-  before boot.scr; removing it forces U-Boot to use boot.scr)
 
 The fixed MBR disk signature (`0x4c503348`) is written by `mksdimg.sh`,
 making `PARTUUID=4c503348-01` stable across reflashes. The kernel resolves
 PARTUUID directly from the MBR without an initramfs.
-
-Requires `mkimage` (`u-boot-tools`) on the build host — included in the
-Docker image.
 
 ## Flashing
 
@@ -401,3 +396,66 @@ will still work but will fall back to a regular sparse copy.
 Remember to set `NOGUI` in `.env` to match the base image you have linked —
 `mkcustomrootfs.sh` reads `.env` and the image name will include a `-GUI` or
 `-NOGUI` suffix accordingly (added by `mksdimg.sh`).
+
+## 40-pin GPIO header
+
+All GPIO pins are on `gpiochip1` (`300b000.pinctrl`, main PIO). Line number =
+port-index × 32 + pin (PG = port 6, PH = port 7).
+
+GPIO access requires membership in the `gpio` group (created by `02_user_setup.sh`)
+and the udev rule `60-gpio.rules` (sets `GROUP=gpio MODE=0660` on `/dev/gpiochip*`).
+Use `gpiodetect` / `gpioget` / `gpioset` from `gpiod`.
+
+| Pin | Signal | Port | Line | Alt functions |
+|-----|--------|------|------|---------------|
+|  1  | 3.3V   | —    | —    | Power |
+|  2  | 5V     | —    | —    | Power |
+|  3  | PG16   | G    | 208  | MCLKPWM / AC_ADCXPN |
+|  4  | 5V     | —    | —    | Power |
+|  5  | PG15   | G    | 207  | I2S2_DIN1 |
+|  6  | GND    | —    | —    | |
+|  7  | PH2    | H    | 226  | UART5_RX / **PWM2** |
+|  8  | PG6    | G    | 198  | UART1_TX / JTAG_DI |
+|  9  | GND    | —    | —    | |
+| 10  | PG7    | G    | 199  | UART1_RX / JTAG_CK |
+| 11  | PG10   | G    | 202  | I2S2_MCLK / CKFOUT |
+| 12  | PG11   | G    | 203  | I2S2_BCLK |
+| 13  | PG8    | G    | 200  | UART1_CTS / TWI1_SCK |
+| 14  | GND    | —    | —    | |
+| 15  | PG9    | G    | 201  | UART1_RTS / TWI1_SDA |
+| 16  | PG1    | G    | 193  | SDC1_CLK |
+| 17  | 3.3V   | —    | —    | Power |
+| 18  | PH10   | H    | 234  | IR_RX |
+| 19  | PH7    | H    | 231  | UART2_RTS / **SPI1_CS0** / I2S3_LRCK |
+| 20  | GND    | —    | —    | |
+| 21  | PH8    | H    | 232  | UART2_CTS / **SPI1_CLK** / I2S3 |
+| 22  | PH4    | H    | 228  | SPDIF_OUT |
+| 23  | PH6    | H    | 230  | UART2_RX / **SPI1_MISO** / I2S3_BCLK |
+| 24  | PH5    | H    | 229  | UART2_TX / **SPI1_MOSI** / I2S3_MCLK |
+| 25  | GND    | —    | —    | |
+| 26  | PH9    | H    | 233  | SPI1_MISO (alt) |
+| 27  | PG18   | G    | 210  | **I2C3_SCL** / TWI3_SCK / UART3_CTS |
+| 28  | PG17   | G    | 209  | **I2C3_SDA** / TWI3_SDA / UART3_RTS |
+| 29  | PG0    | G    | 192  | SDC1_CMD |
+| 30  | GND    | —    | —    | |
+| 31  | PG3    | G    | 195  | SDC1_D1 |
+| 32  | —      | —    | —    | — |
+| 33  | PH3    | H    | 227  | UART5_TX / **PWM1** / SPDIF_IN |
+| 34  | GND    | —    | —    | |
+| 35  | PG12   | G    | 204  | I2S2_LRCK |
+| 36  | PG5    | G    | 197  | SDC1_D3 |
+| 37  | —      | —    | —    | — |
+| 38  | PG13   | G    | 205  | I2S2_DOUT0 / AC_ADCRP |
+| 39  | GND    | —    | —    | |
+| 40  | PG14   | G    | 206  | I2S2_DIN0 / AC_ADCXP |
+
+Pins not on header (reserved):
+
+| Port | Line | Use |
+|------|------|-----|
+| PG2  | 194  | LED0 — heartbeat (kernel gpio-leds, `GPIO_ACTIVE_HIGH`) |
+| PG4  | 196  | LED1 — kernel gpio-leds (`GPIO_ACTIVE_LOW`); not exported to header |
+| PH0  | 224  | UART0_TX — serial console (`/dev/ttyS0`) |
+| PH1  | 225  | UART0_RX — serial console (`/dev/ttyS0`) |
+
+Interfaces enabled in DTS: `uart1` (PG6/7), `i2c3` (PG18/17), `spi1` (PH5–8), `pwm` (PH2/3 via `pwm-fan`).
