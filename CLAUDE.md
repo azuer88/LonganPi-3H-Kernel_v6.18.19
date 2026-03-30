@@ -93,6 +93,19 @@ The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`. The SD card
 
 `mkcustomrootfs.sh` creates `build/input/boot.fat` (the authoritative boot config). `99_fix_partuuid.sh` writes a matching `extlinux.conf` to `$ROOTFS/boot/extlinux/extlinux.conf` for reference only — U-Boot does **not** read that copy. **Do not change this signature** without updating both scripts — the kernel boots without an initramfs and resolves root directly from PARTUUID.
 
+### Build environment constraints
+- `mkcustomrootfs.sh` must run on the **host** (not in Docker) — needs root for `mount`, `mkfs.fat`, `mcopy`
+- `uuidgen` is **not** in the `lpi3h-build` Docker image; `07_wifi.sh` falls back to `/proc/sys/kernel/random/uuid`
+- `build/uboot/` is owned by root (created inside Docker); edit via `docker run --rm -v /extra/LPI3H/LonganPi-3H-SDK:/sdk lpi3h-build bash -c "..."`
+
+### firstboot.sh behaviour
+- Runs **once** on first boot via `firstboot.service`; renamed to `/opt/firstboot.sh.done` afterward (never reruns)
+- To manually resize rootfs on a running board: `parted /dev/mmcblk0 resizepart 2 100%` then `resize2fs /dev/mmcblk0p2` (online resize is safe)
+
+### Serial console interaction
+- Use Python `pyserial` for scripted serial interaction when board has no SSH yet
+- `sudo -S` with heredoc password works over SSH: `sudo -S cmd <<< password`
+
 ### Kernel source (`build/linux`)
 - Base: Linux 6.18.19 (commit `4aea1dc4c`)
 - 59 patches applied; current HEAD: `930f33032` (pending 0059 commit)
@@ -117,6 +130,7 @@ Notable patches:
 
 ### Board-specific notes (lpi3h-f1a0)
 - Serial console: `/dev/ttyUSB0` at 115200 baud
+- SSH: `lpi3h-f1a0` (mDNS) or IP from router; user `default`, password from `USER_PASS` in `.env`
 - extlinux: two entries — `l0` = `6.18.19+` (old), `l1` = `6.18.19` (current patched). Default: `l1`
 - HDMI requires `video=HDMI-A-1:1280x720@60` in kernel cmdline; without it, display fails if monitor is in power-save at boot
 - Panfrost (Mali-G31) works at 432 MHz; requires `CONFIG_SUN50I_H6_PRCM_PPU=y` for GPU power domain
