@@ -38,6 +38,9 @@ RUN apt-get update && apt-get install -y \
     kmod \
     lsb-release \
     python3 \
+    python3-dev \
+    python3-setuptools \
+    swig \
     mmdebstrap \
     qemu-user-static \
     binfmt-support \
@@ -45,6 +48,7 @@ RUN apt-get update && apt-get install -y \
     e2fsprogs \
     debian-archive-keyring \
     u-boot-tools \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /sdk
