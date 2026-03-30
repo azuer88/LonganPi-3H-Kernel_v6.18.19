@@ -53,7 +53,7 @@ make_boot_fat() {
 
     echo "Creating boot FAT partition (kernel=${KVER})..."
     truncate -s 63M "$BOOT_FAT"
-    mkfs.fat -F 32 -n BOOT "$BOOT_FAT"
+    mkfs.fat -F 32 -n lpi3h-boot "$BOOT_FAT"
     mmd -i "$BOOT_FAT" "::extlinux"
     mcopy -i "$BOOT_FAT" "$ROOTFS/boot/vmlinuz-${KVER}" "::vmlinuz-${KVER}"
     mcopy -i "$BOOT_FAT" "$DTB_SRC" "::sun50i-h618-longanpi-3h.dtb"
