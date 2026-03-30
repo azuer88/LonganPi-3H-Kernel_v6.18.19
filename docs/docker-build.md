@@ -71,6 +71,8 @@ docker run --rm --privileged --network=host \
 - **`--ulimit nofile=1048576:1048576`** required for kernel link stage.
 - **`--network=host`** required for apt proxy.
 - **`--privileged`** required for rootfs build (mmdebstrap needs real root for arm64 cross-bootstrap).
+- **`mkcustomrootfs.sh` and `mksdimg.sh` must run on the host**, not in Docker — they need root access to `mount`, `mkfs.fat`, and `mcopy` for the FAT boot partition. Run them directly: `sudo bash mkcustomrootfs.sh && bash mksdimg.sh`.
+- **`uuidgen` is not in the Docker image** — `07_wifi.sh` falls back to `/proc/sys/kernel/random/uuid` automatically, but this is a reminder not to add scripts that depend on `uuidgen` inside Docker.
 
 ## Stale x86-64 binaries (if build/linux was rsynced from longan-builder)
 

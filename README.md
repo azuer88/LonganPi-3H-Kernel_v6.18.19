@@ -20,6 +20,7 @@ Based on [sipeed/LonganPi-3H-SDK](https://github.com/sipeed/LonganPi-3H-SDK).
 | USB host | ✅ Working | 3× USB 2.0 + 3× USB 1.1 |
 | SD card | ✅ Working | Boots from SD; `mmcblk1` |
 | I2C | ✅ Working | `/dev/i2c-0..2` |
+| SPI | ✅ Controller present | `spi_sun6i` on `spi@5011000` (SPI0); no spidev DTS node by default — add one to get `/dev/spidev0.0` |
 | Serial console | ✅ Working | `/dev/ttyS0` at 115200 baud |
 | USB OTG | ⚠️ Partial | Controller present (`musb-hdrc`); peripheral mode configured; not tested |
 | USB serial (CH340/CH341) | ✅ Working | `/dev/ttyUSB*`; `CONFIG_USB_SERIAL_CH341=m` |
@@ -219,8 +220,12 @@ bash mkcustomrootfs.sh
 
 Sparse-copies `build/rootfs_base.ext4` to `build/input/rootfs.ext4`, mounts
 it (auto-escalates to root via sudo), runs all scripts in `custom/` via
-`customize_rootfs.sh`, then resizes the filesystem to minimum used + 500 MB
-headroom using `resize2fs -P` + `resize2fs`.
+`customize_rootfs.sh`, creates `build/input/boot.fat` (63 MB FAT32 image
+containing the kernel, DTB, and `extlinux/extlinux.conf`), then resizes the
+rootfs to minimum used + 500 MB headroom.
+
+**Must run on the host** — requires root for `mount`, `mkfs.fat`, and `mcopy`.
+Do not run inside Docker.
 
 Requires: `build/rootfs_base.ext4`
 Output: `build/input/rootfs.ext4`
@@ -246,19 +251,23 @@ bash mksdimg.sh
 
 Creates the final SD card image using `genimage` with this layout:
 
-| Region         | Offset | Content |
-|----------------|--------|---------|
-| U-Boot SPL+env | 8 KiB  | `u-boot-sunxi-with-spl.bin` (not in partition table) |
-| rootfs (MBR p1)| 8 MiB  | `rootfs.ext4` |
+| Region              | Offset  | Content |
+|---------------------|---------|---------|
+| U-Boot SPL+env      | 8 KiB   | `u-boot-sunxi-with-spl.bin` (not in partition table) |
+| Boot FAT32 (MBR p1) | 1 MiB   | `boot.fat` — vmlinuz, DTB, `extlinux/extlinux.conf`; `PARTUUID=4c503348-01` |
+| rootfs ext4 (MBR p2)| 64 MiB  | `rootfs.ext4`; `PARTUUID=4c503348-02` |
 
-A fixed MBR disk signature (`0x4c503348`) is written so the rootfs partition
-always has `PARTUUID=4c503348-01`, regardless of which `mmcblkX` device the
-SD card is assigned at boot. The kernel uses this PARTUUID directly without
-an initramfs.
+A fixed MBR disk signature (`0x4c503348`) is written so PARTUUIDs are stable
+across reflashes regardless of `mmcblkX` device assignment. The FAT boot
+partition is used because U-Boot's ext4 driver cannot read inode tables in
+block groups beyond ~3 — on the rootfs filesystem (512 inodes/group), boot
+files land in group 10+ and are silently unreadable. U-Boot's FAT driver has
+no such limitation. The kernel resolves `root=PARTUUID=4c503348-02` directly
+without an initramfs.
 
 The image is compressed with `xz -7`.
 
-Requires: `build/input/rootfs.ext4`, `build/input/u-boot-sunxi-with-spl.bin`
+Requires: `build/input/rootfs.ext4`, `build/input/boot.fat`, `build/input/u-boot-sunxi-with-spl.bin`
 Output: `build/images/sdcard-MACID.img.xz`
 
 ---
@@ -326,7 +335,9 @@ Skipped (no file written) if `APT_PROXY` is unset or unreachable.
 Creates a NetworkManager connection profile at
 `/etc/NetworkManager/system-connections/$SSID.nmconnection` for WPA2
 infrastructure mode, bound to the WiFi interface named `wlx$MACID` (the
-standard Linux naming for USB WiFi with a known MAC address).
+standard Linux naming for USB WiFi with a known MAC address). Generates the
+connection UUID via `uuidgen` with a fallback to `/proc/sys/kernel/random/uuid`
+(needed when run inside Docker where `uuidgen` is absent).
 
 Requires: `SSID`, `PKEY`, `MACID` in `.env`.
 
@@ -349,19 +360,14 @@ Board-specific P2P/WiFi suppression:
 
 ### 99_fix_partuuid.sh
 
-Writes `/boot/extlinux/extlinux.conf` and `/etc/default/u-boot` with the
-correct `PARTUUID=4c503348-01`. Runs last to override anything `u-boot-update`
-may have generated during kernel deb installation in `01_install_debs.sh`.
-Also removes Armbian-style boot files (`boot.scr`, `boot.cmd`, `armbianEnv.txt`)
-if present.
+Writes `/boot/extlinux/extlinux.conf` (reference copy, **not** read by
+U-Boot) and `/etc/default/u-boot` with `PARTUUID=4c503348-02` (rootfs is
+partition 2). Runs last to override anything `u-boot-update` may have
+generated. Also removes Armbian-style boot files (`boot.scr`, `boot.cmd`,
+`armbianEnv.txt`) if present.
 
-Files written:
-- `/boot/extlinux/extlinux.conf` — U-Boot syslinux-style boot config
-- `/etc/default/u-boot` — for u-boot-update compatibility
-
-The fixed MBR disk signature (`0x4c503348`) is written by `mksdimg.sh`,
-making `PARTUUID=4c503348-01` stable across reflashes. The kernel resolves
-PARTUUID directly from the MBR without an initramfs.
+U-Boot reads the authoritative `extlinux/extlinux.conf` from the FAT boot
+partition (`build/input/boot.fat`), created by `mkcustomrootfs.sh`.
 
 ## Flashing
 
