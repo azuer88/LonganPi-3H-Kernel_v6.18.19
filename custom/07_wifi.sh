@@ -15,10 +15,12 @@ fi
 TARGET="/etc/NetworkManager/system-connections/$SSID.nmconnection"
 echo "Creating $TARGET in $1"
 umask 077
+# uuidgen may be absent in some build environments; fall back to /proc/sys/kernel/random/uuid
+_UUID=$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid)
 cat << EOF > "$1$TARGET"
 [connection]
 id=$SSID
-uuid=$(uuidgen)
+uuid=${_UUID}
 type=wifi
 interface-name=wlx${MACID}
 
