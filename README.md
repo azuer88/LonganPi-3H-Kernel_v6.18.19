@@ -22,6 +22,7 @@ Based on [sipeed/LonganPi-3H-SDK](https://github.com/sipeed/LonganPi-3H-SDK).
 | I2C | ✅ Working | `/dev/i2c-0..2` |
 | Serial console | ✅ Working | `/dev/ttyS0` at 115200 baud |
 | USB OTG | ⚠️ Partial | Controller present (`musb-hdrc`); peripheral mode configured; not tested |
+| USB serial (CH340/CH341) | ✅ Working | `/dev/ttyUSB*`; `CONFIG_USB_SERIAL_CH341=m` |
 | PWM / fan | ✅ Working | PWM driver patched in |
 
 ## Dependencies
@@ -53,7 +54,9 @@ sudo apt update
 sudo apt install \
     gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
     make bc flex bison libssl-dev libelf-dev libdw-dev \
-    debhelper dpkg-dev fakeroot cpio rsync kmod lsb-release python3 \
+    debhelper dpkg-dev fakeroot cpio rsync kmod lsb-release \
+    python3 python3-dev python3-setuptools swig \
+    git \
     mmdebstrap qemu-user-static binfmt-support \
     genext2fs e2fsprogs debian-archive-keyring \
     genimage fuse2fs
@@ -134,7 +137,7 @@ Output: `build/u-boot-sunxi-with-spl.bin`
 bash mklinux.sh
 ```
 
-Shallow-clones Linux 6.18.19 from `torvalds/linux` and applies all 58 LonganPi 3H
+Shallow-clones Linux 6.18.19 from `torvalds/linux` and applies all 59 LonganPi 3H
 patches from `kernel_patches/` in order, producing `build/linux`. Skips silently
 if `build/linux` already exists; use `--force` to re-clone from scratch.
 
