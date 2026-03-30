@@ -42,7 +42,7 @@ docker run --rm --privileged --network=host \
 
 ## Critical constraints
 
-- **Must bind-mount from `/extra/LPI3H/`** (ext4). Never from `/home/lou/Projects/` — FUSE/unionfs causes `ar: Too many open files`.
+- **Must bind-mount from a real filesystem** (ext4, xfs, etc.). Never from a unionfs, overlayfs, or any FUSE-based filesystem — these cause `ar: Too many open files` during kernel builds.
 - **`--ulimit nofile=1048576:1048576`** required for kernel link stage.
 - **`--network=host`** required for apt proxy.
 - **`--privileged`** required for rootfs build (mmdebstrap needs real root for arm64 cross-bootstrap).
