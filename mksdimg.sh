@@ -21,6 +21,10 @@ if [ -z "${IMAGE_NAME:-}" ]; then
     IMAGE_NAME="sdcard-$MACID"
 fi
 
+if [ "${NOGUI:-1}" = "0" ]; then
+    IMAGE_NAME="${IMAGE_NAME}-GUI"
+fi
+
 # Fixed MBR disk signature so PARTUUID is stable across flashes.
 # PARTUUID for rootfs partition = 4c503348-01
 DISK_SIGNATURE="4c503348"
