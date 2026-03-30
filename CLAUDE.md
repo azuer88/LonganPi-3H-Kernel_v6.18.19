@@ -91,8 +91,8 @@ The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`, making the 
 
 ### Kernel source (`build/linux`)
 - Base: Linux 6.18.19 (commit `4aea1dc4c`)
-- 58 patches applied; current HEAD: `930f33032`
-- Patch files: `kernel_patches/0001-*.patch` … `0058-*.patch`
+- 59 patches applied; current HEAD: `930f33032` (pending 0059 commit)
+- Patch files: `kernel_patches/0001-*.patch` … `0059-*.patch`
 - Full apply history: `kernel_patches/STATUS.md`
 - Config: `arch/arm64/configs/longanpi_3h_defconfig`
 - To revert all patches: `cd build/linux && git reset --hard 4aea1dc4c`
@@ -103,6 +103,13 @@ Notable patches:
 - `0054` — cedrus/dts: fix H616 VE GIC interrupt SPI 89→93; restore upstream watchdog
 - `0055` — dts: constrain CMA pool below 4 GB (sun4i DMA_BIT_MASK(32) fix for HDMI display)
 - `0056` — defconfig: add HDMI I2S audio drivers
+- `0059` — defconfig: enable USB serial subsystem + CH341 driver (`/dev/ttyUSB*`)
+
+### U-Boot source (`build/uboot`)
+- Cloned and patched by `mkuboot.sh` on first run (base: `da2e3196e`)
+- 14 patches in `uboot/0001-*.patch` … `uboot/0014-*.patch` (upstream sipeed + local fixes)
+- Must be built in Docker (same `lpi3h-build` image as kernel)
+- Output: `build/u-boot-sunxi-with-spl.bin` — flash raw to SD: `dd if=... of=/dev/mmcblkX bs=1024 seek=8`
 
 ### Board-specific notes (lpi3h-f1a0)
 - Serial console: `/dev/ttyUSB0` at 115200 baud

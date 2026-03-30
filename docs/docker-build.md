@@ -1,6 +1,6 @@
 # Docker Build — LPI3H
 
-Single image (`lpi3h-build`) for both kernel and rootfs builds.
+Single image (`lpi3h-build`) for kernel, u-boot, and rootfs builds.
 
 ## Build the Docker image (once)
 
@@ -27,6 +27,31 @@ Add `--clean` after config changes:
 
 ```sh
   bash -c "cd /sdk && CROSS_COMPILE=aarch64-linux-gnu- bash mkkernel.sh --clean"
+```
+
+## Build U-Boot
+
+Clones u-boot at `da2e3196e`, applies all `uboot/*.patch` files, and compiles on first run. Skips clone if `build/uboot` already exists.
+
+```sh
+docker run --rm --network=host \
+  --ulimit nofile=1048576:1048576 \
+  --cpus="10" \
+  -v /extra/LPI3H/LonganPi-3H-SDK:/sdk \
+  lpi3h-build \
+  bash -c "cd /sdk && CROSS_COMPILE=aarch64-linux-gnu- bash mkuboot.sh"
+```
+
+Output: `build/u-boot-sunxi-with-spl.bin`
+
+To flash to a running board's SD card:
+```sh
+sudo dd if=build/u-boot-sunxi-with-spl.bin of=/dev/mmcblk1 bs=1024 seek=8 conv=notrunc && sudo sync
+```
+
+To rebuild from scratch (e.g. after adding patches), remove `build/uboot` via Docker first (it's owned by root):
+```sh
+docker run --rm -v /extra/LPI3H/LonganPi-3H-SDK:/sdk lpi3h-build bash -c "rm -rf /sdk/build/uboot"
 ```
 
 ## Build the rootfs
@@ -67,6 +92,8 @@ build/linux-libc-dev_<version>_arm64.deb
 ```
 
 Rootfs image: `build/rootfs_base.ext4`
+
+U-Boot binary: `build/u-boot-sunxi-with-spl.bin`
 
 ## Setting up build/linux from scratch
 
