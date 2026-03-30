@@ -1,10 +1,10 @@
-# linux.new Patch Application Status
+# kernel_patches Patch Application Status
 ## Target kernel: 6.18.19 (at /home/ubuntu/Projects/test/LonganPi-3H-SDK/build/linux)
 ## Applied on: 2026-03-25 | Last updated: 2026-03-28
 
 ---
 
-## Skipped (already upstream in 6.18.19) — NOT in linux.new
+## Skipped (already upstream in 6.18.19) — NOT in kernel_patches
 - 0001 LPI3H DTS, 0003 smccc export, 0004/0007 cpufreq blocklist,
   0005/0008 cpufreq nvmem, 0006/0009 OPP DTS, 0025 DTB Makefile,
   0044 thermal, 0045 DMA, 0051 CH341, 0053 pca9557

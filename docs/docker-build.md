@@ -68,11 +68,21 @@ build/linux-libc-dev_<version>_arm64.deb
 
 Rootfs image: `build/rootfs_base.ext4`
 
+## Setting up build/linux from scratch
+
+If `build/linux` does not exist, run `mklinux.sh` to clone and patch:
+
+```sh
+bash mklinux.sh
+```
+
+Use `--force` to delete and re-clone an existing tree.
+
 ## Applying new patches
 
 ```sh
 cd /extra/LPI3H/LonganPi-3H-SDK/build/linux
-git am < ../../linux.new/XXXX-description.patch
+git am < ../../kernel_patches/XXXX-description.patch
 ```
 
 Revert all patches to 6.18.19 base:

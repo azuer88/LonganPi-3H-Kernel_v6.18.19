@@ -64,6 +64,7 @@ IMAGE_NAME=sdcard-$MACID  # optional override
 ```
 mkatf.sh → bl31.bin
 mkuboot.sh (uses bl31.bin) → u-boot-sunxi-with-spl.bin
+mklinux.sh → build/linux/  [clone Linux 6.18.19 + apply kernel_patches/; skips if exists]
 mkkernel.sh → linux-image-*.deb, linux-headers-*.deb
 mkoverlay.sh → overlay.deb (board config/firmware, package: sipeed-longanpi3h-extra)
 mkrootfs.sh → build/rootfs_base.ext4  [slow, cached, re-run only for package changes]
@@ -90,9 +91,9 @@ The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`, making the 
 
 ### Kernel source (`build/linux`)
 - Base: Linux 6.18.19 (commit `4aea1dc4c`)
-- 56 patches applied; current HEAD: `887285633`
-- Patch files: `linux.new/0001-*.patch` … `0056-*.patch`
-- Full apply history: `linux.new/STATUS.md`
+- 58 patches applied; current HEAD: `930f33032`
+- Patch files: `kernel_patches/0001-*.patch` … `0058-*.patch`
+- Full apply history: `kernel_patches/STATUS.md`
 - Config: `arch/arm64/configs/longanpi_3h_defconfig`
 - To revert all patches: `cd build/linux && git reset --hard 4aea1dc4c`
 
