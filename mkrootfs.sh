@@ -62,15 +62,23 @@ deb [trusted=yes] ${MIRROR}/debian/ ${CODENAME} main contrib non-free non-free-f
 deb [trusted=yes] ${MIRROR}/debian/ ${CODENAME}-updates main contrib non-free non-free-firmware
 EOF
 
-# Detect apt proxy: prefer aptcacheserver:8000, fall back to localhost:8080
-if bash -c 'echo > /dev/tcp/aptcacheserver/8000' 2>/dev/null; then
-    APT_PROXY_URL="http://aptcacheserver:8000"
-else
-    APT_PROXY_URL="http://localhost:8080"
+# Resolve apt proxy: use APT_PROXY if set and reachable, else APT_PROXY_FALLBACK if set and reachable, else no proxy
+proxy_reachable() {
+    local url="$1"
+    local host port
+    host=$(echo "$url" | sed 's|.*://||; s|/.*||; s|:.*||')
+    port=$(echo "$url" | sed 's|.*://||; s|/.*||; s|.*:||')
+    [ -n "$host" ] && [ -n "$port" ] && bash -c "echo > /dev/tcp/${host}/${port}" 2>/dev/null
+}
+APT_PROXY_URL=""
+if [ -n "${APT_PROXY:-}" ] && proxy_reachable "${APT_PROXY}"; then
+    APT_PROXY_URL="${APT_PROXY}"
+elif [ -n "${APT_PROXY_FALLBACK:-}" ] && proxy_reachable "${APT_PROXY_FALLBACK}"; then
+    APT_PROXY_URL="${APT_PROXY_FALLBACK}"
 fi
 
 MMDEBSTRAP_OPTS=(
-    --aptopt="Acquire::HTTP::Proxy \"${APT_PROXY_URL}\";"
+    ${APT_PROXY_URL:+--aptopt="Acquire::HTTP::Proxy \"${APT_PROXY_URL}\";"}
     --aptopt="Dir::Etc::Trusted \"$(pwd)/build/keyrings/debian-archive-keyring.gpg\""  
     --architectures=arm64 -v -d
     --include="${BASE_PACKAGE} ${DESKTOP_PACKAGE} ${USER_PACKAGE}"

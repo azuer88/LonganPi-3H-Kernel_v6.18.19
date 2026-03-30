@@ -71,7 +71,8 @@ Copy `.env.example` to `.env` and set the following variables before building:
 | `PKEY`           | Yes      | WiFi WPA2 passphrase |
 | `NTP_SERVER`     | No       | Custom NTP server address |
 | `TIMEZONE`       | No       | Timezone (e.g. `America/Los_Angeles`) |
-| `APT_PROXY`      | No       | APT proxy URL (e.g. `http://aptcacheserver:8000`) |
+| `APT_PROXY`      | No       | Primary APT proxy URL; used if reachable (e.g. `http://aptcacheserver:8000`) |
+| `APT_PROXY_FALLBACK` | No   | Fallback APT proxy URL; used if `APT_PROXY` is unset or unreachable |
 | `NOGUI`          | No       | Set to `1` to skip desktop packages |
 | `MIRROR`         | No       | Debian mirror URL (default: `http://deb.debian.org`) |
 | `IMAGE_NAME`     | No       | Override output image name (default: `sdcard-$MACID`) |
@@ -295,8 +296,8 @@ Skipped if `NTP_SERVER` or `TIMEZONE` are not set.
 
 ### 06_update_apt_proxy.sh
 
-Writes `/etc/apt/apt.conf.d/02Proxy` with the configured proxy URL.
-Skipped if `APT_PROXY` is not set.
+Writes `/etc/apt/apt.conf.d/02Proxy` with the `APT_PROXY` URL.
+Skipped (no file written) if `APT_PROXY` is unset or unreachable.
 
 ### 07_wifi.sh
 

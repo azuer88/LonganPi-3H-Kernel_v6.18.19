@@ -52,7 +52,8 @@ SSID=mywifi
 PKEY=wpapassphrase
 TIMEZONE=America/Los_Angeles
 NTP_SERVER=192.168.1.1
-APT_PROXY=http://192.168.254.81:8080   # optional, speeds up mmdebstrap
+APT_PROXY=http://192.168.254.81:8080   # optional; mkrootfs.sh uses if reachable, else tries APT_PROXY_FALLBACK
+APT_PROXY_FALLBACK=http://localhost:8080  # optional; mkrootfs.sh fallback only — 06_update_apt_proxy.sh ignores this
 NOGUI=0                   # set 1 to skip XFCE desktop
 IMAGE_NAME=sdcard-$MACID  # optional override
 ```
@@ -77,7 +78,8 @@ mksdimg.sh → build/images/sdcard-MACID.img.xz
 2. `02_user_setup.sh` — creates user, sets passwords, group membership; writes directly to `/etc/passwd`, `/etc/shadow`, `/etc/group` (no chroot)
 3. `03_ssh_host_keys.sh` — pre-generates SSH host keys keyed by `MACID`; cached in `build/host_keys/$MACID/` for stable fingerprints across reflashes
 4. `04_authorized_key.sh` — installs SSH pubkey; reads UID/GID from rootfs `/etc/passwd`
-5–6. NTP/apt proxy config
+5. `05_ntp.sh` — NTP/timezone config
+6. `06_update_apt_proxy.sh` — writes `/etc/apt/apt.conf.d/02Proxy` if `APT_PROXY` is set and reachable; no fallback
 7. `07_wifi.sh` — NetworkManager profile for `wlx$MACID` interface (USB WiFi naming)
 8. `08_hostname.sh` — sets `lpi3h-XXXX` (last 4 hex of MACID)
 9. `09_lpi3h_config.sh` — writes `/etc/default/u-boot`, creates `/boot/extlinux/extlinux.conf`, udev rule to suppress P2P WiFi interface
