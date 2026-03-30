@@ -7,6 +7,8 @@ if [ $(id -u) -ne 0 ]; then
     exec sudo "$(realpath $0)" "$@"
 fi
 
+pushd "$(dirname "$(realpath "$0")")" > /dev/null
+
 # load .env
 set -a && source .env && set +a
 
@@ -47,12 +49,6 @@ set -euxo pipefail
 
 BASE_EXT4="./build/rootfs_base.ext4"
 BASE_EXT2="./build/rootfs_base.ext2"
-
-# ===== DO NOT REMOVE BEGIN =====
-# removed options:
-# --hook-dir=./hooks \
-# --aptopt='Acquire::HTTP::Proxy "http://192.168.254.81:8080";' \
-# ===== DO NOT REMOVE END =====
 
 # Write sources list to a temp file so mmdebstrap can write directly to $MNT
 # (avoids the stdin→tar pipe which fails with fuse2fs+fakeroot)
@@ -95,3 +91,5 @@ e2fsck -fp "$BASE_EXT2" || [ $? -le 2 ]
 mv "$BASE_EXT2" "$BASE_EXT4"
 
 echo "mkrootfs done. Base image: $BASE_EXT4"
+
+popd > /dev/null
