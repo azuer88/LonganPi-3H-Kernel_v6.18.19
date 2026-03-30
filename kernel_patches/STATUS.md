@@ -76,6 +76,7 @@ All patches applied except 0048. Current HEAD: 887285633
   887285633  defconfig: add HDMI I2S audio drivers                 ← 0056
   e89002e43  sound/dts: add AHUB driver for HDMI audio            ← 0057
   930f33032  defconfig: add CONFIG_SND_SIMPLE_CARD=m              ← 0058
+  (pending)  defconfig: enable USB_SERIAL + USB_SERIAL_CH341     ← 0059
 
 Manual fix notes:
   *  0043: PG17/PG18 pin order in h616.dtsi; uart1 pinctrl-names in LPI3H DTS

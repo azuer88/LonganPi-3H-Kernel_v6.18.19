@@ -1,5 +1,5 @@
 From 3c90865b8f4aad52469cbdb44aabb6648261ff91 Mon Sep 17 00:00:00 2001
-From: Lou Viannay <lou.viannay@octavesolution.com>
+From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Sat, 28 Mar 2026 22:36:43 +0800
 Subject: [PATCH 51/56] cedrus: reduce watchdog polling interval from 50ms to
  5ms

@@ -1,5 +1,5 @@
 From 930f33032a74d5b46c7f6e0fa525e8f933c62637 Mon Sep 17 00:00:00 2001
-From: Lou Viannay <lou.viannay@octavesolution.com>
+From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Sun, 29 Mar 2026 14:12:42 +0800
 Subject: [PATCH 2/2] defconfig: add CONFIG_SND_SIMPLE_CARD=m for HDMI audio
  machine driver

@@ -1,5 +1,5 @@
 From 888837b51925667307c473d1d32559d7463c6844 Mon Sep 17 00:00:00 2001
-From: Lou Viannay <lou.viannay@octavesolution.com>
+From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Sun, 29 Mar 2026 05:34:13 +0800
 Subject: [PATCH 54/56] =?UTF-8?q?cedrus/dts:=20fix=20H616=20VE=20interrupt?=
  =?UTF-8?q?=20(GIC=20SPI=2089=20=E2=86=92=2093)=20and=20remove=20polling?=

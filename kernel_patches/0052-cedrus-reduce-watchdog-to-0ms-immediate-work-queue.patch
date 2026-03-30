@@ -1,5 +1,5 @@
 From b761887ef19e82500e30a785ae5124eeaf1dffb7 Mon Sep 17 00:00:00 2001
-From: Lou Viannay <lou.viannay@octavesolution.com>
+From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Sat, 28 Mar 2026 22:46:45 +0800
 Subject: [PATCH 52/56] cedrus: reduce watchdog to 0ms (immediate work queue)
 

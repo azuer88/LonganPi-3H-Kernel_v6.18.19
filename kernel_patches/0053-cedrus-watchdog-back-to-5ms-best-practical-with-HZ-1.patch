@@ -1,5 +1,5 @@
 From 882f27c40e16342a9c3e03f755f3ddf77e9e8cc6 Mon Sep 17 00:00:00 2001
-From: Lou Viannay <lou.viannay@octavesolution.com>
+From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Sat, 28 Mar 2026 22:53:10 +0800
 Subject: [PATCH 53/56] cedrus: watchdog back to 5ms (best practical with
  HZ=100)

@@ -1,5 +1,5 @@
 From 88728563366952d79706108a88628a361bcbbd64 Mon Sep 17 00:00:00 2001
-From: Lou Viannay <lou.viannay@octavesolution.com>
+From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Sun, 29 Mar 2026 05:39:38 +0800
 Subject: [PATCH 56/56] defconfig: add HDMI I2S audio drivers
  (DRM_DW_HDMI_I2S_AUDIO, SND_SUN4I_I2S)

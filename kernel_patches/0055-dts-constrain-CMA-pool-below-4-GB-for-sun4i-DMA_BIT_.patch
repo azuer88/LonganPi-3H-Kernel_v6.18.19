@@ -1,5 +1,5 @@
 From dccc300f538c3aa8760889e3b1ca629978214e3d Mon Sep 17 00:00:00 2001
-From: Lou Viannay <lou.viannay@octavesolution.com>
+From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Sun, 29 Mar 2026 05:34:24 +0800
 Subject: [PATCH 55/56] dts: constrain CMA pool below 4 GB for sun4i
  DMA_BIT_MASK(32)
