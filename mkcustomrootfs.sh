@@ -8,14 +8,25 @@ if [ $(id -u) -ne 0 ]; then
     exec sudo "$(realpath $0)" "$@"
 fi
 
-BASE_EXT4="./build/rootfs_base.ext4"
-if [ ! -e "$BASE_EXT4" ]; then
-    echo "build/rootfs_base.ext4 not found — run mkrootfs.sh first"
-    exit 1
+# load .env (needed for CODENAME)
+set -a && source .env && set +a
+
+if [ -n "${CODENAME:-}" ]; then
+    BASE_EXT4="./build/rootfs_base-${CODENAME}.ext4"
+    if [ ! -e "$BASE_EXT4" ]; then
+        echo "WARNING: $BASE_EXT4 not found — falling back to build/rootfs_base.ext4"
+        BASE_EXT4="./build/rootfs_base.ext4"
+    fi
+    OUTPUT_ROOTFS="./build/input/rootfs-${CODENAME}.ext4"
+else
+    BASE_EXT4="./build/rootfs_base.ext4"
+    OUTPUT_ROOTFS="./build/input/rootfs.ext4"
 fi
 
-# load .env
-set -a && source .env && set +a
+if [ ! -e "$BASE_EXT4" ]; then
+    echo "$BASE_EXT4 not found — run mkrootfs.sh first"
+    exit 1
+fi
 
 set -eux
 
@@ -26,7 +37,14 @@ cp -v ./build/u-boot-sunxi-with-spl.bin ./build/input/
 
 # Sparse copy — fast on any filesystem; instant with reflinks (btrfs/xfs)
 echo "Copying base ext4..."
-cp --sparse=always --reflink=auto "$BASE_EXT4" ./build/input/rootfs.ext4
+cp --sparse=always --reflink=auto "$BASE_EXT4" "$OUTPUT_ROOTFS"
+
+# Pre-expand: mmdebstrap leaves <10% headroom which is not enough for
+# linux-headers + kernel image + overlay.deb extraction.  Add 1 GB before
+# mounting so customization scripts have room to work.
+e2fsck -fp "$OUTPUT_ROOTFS" || true
+truncate -s "+1G" "$OUTPUT_ROOTFS"
+resize2fs "$OUTPUT_ROOTFS"
 
 mkdir -pv ./build/rootfs
 
@@ -76,14 +94,14 @@ EOF
 }
 
 if [ $(id -u) -ne 0 ]; then
-    fuse2fs ./build/input/rootfs.ext4 ./build/rootfs
+    fuse2fs "$OUTPUT_ROOTFS" ./build/rootfs
     echo "calling customization scripts"
     source ./customize_rootfs.sh ./build/rootfs
     echo "done with customization scripts"
     make_boot_fat ./build/rootfs
     fusermount -u ./build/rootfs
 else
-    mount ./build/input/rootfs.ext4 ./build/rootfs/
+    mount "$OUTPUT_ROOTFS" ./build/rootfs/
     echo "calling customization scripts"
     source ./customize_rootfs.sh ./build/rootfs
     echo "done with customization scripts."
@@ -91,12 +109,12 @@ else
     umount ./build/rootfs
 fi
 
-e2fsck -fp build/input/rootfs.ext4
-BLKSIZE=$(tune2fs -l build/input/rootfs.ext4 | awk '/^Block size/{print $3}')
-MIN_BLOCKS=$(resize2fs -P build/input/rootfs.ext4 2>/dev/null | awk '{print $NF}')
+e2fsck -fp "$OUTPUT_ROOTFS"
+BLKSIZE=$(tune2fs -l "$OUTPUT_ROOTFS" | awk '/^Block size/{print $3}')
+MIN_BLOCKS=$(resize2fs -P "$OUTPUT_ROOTFS" 2>/dev/null | awk '{print $NF}')
 EXTRA_BLOCKS=$(( 500 * 1024 * 1024 / BLKSIZE ))
-resize2fs build/input/rootfs.ext4 $(( MIN_BLOCKS + EXTRA_BLOCKS ))
+resize2fs "$OUTPUT_ROOTFS" $(( MIN_BLOCKS + EXTRA_BLOCKS ))
 
 rm -rf ./build/rootfs
 
-echo "mkcustomrootfs done. rootfs.ext4 ready at build/input/rootfs.ext4"
+echo "mkcustomrootfs done. rootfs ready at $OUTPUT_ROOTFS"

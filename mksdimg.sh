@@ -2,8 +2,20 @@
 # Create SD card .img from build/input/rootfs.ext4 + u-boot, then compress
 # Usage: bash mksdimg.sh
 
-if [ ! -e ./build/input/rootfs.ext4 ]; then
-    echo "./build/input/rootfs.ext4 not found — run mkcustomrootfs.sh first"
+# load .env (needed for CODENAME)
+set -a && source .env && set +a
+
+if [ -n "${CODENAME:-}" ] && [ -e "./build/input/rootfs-${CODENAME}.ext4" ]; then
+    ROOTFS_FILE="rootfs-${CODENAME}.ext4"
+else
+    if [ -n "${CODENAME:-}" ]; then
+        echo "WARNING: build/input/rootfs-${CODENAME}.ext4 not found — falling back to rootfs.ext4"
+    fi
+    ROOTFS_FILE="rootfs.ext4"
+fi
+
+if [ ! -e "./build/input/$ROOTFS_FILE" ]; then
+    echo "./build/input/$ROOTFS_FILE not found — run mkcustomrootfs.sh first"
     exit 1
 fi
 
@@ -17,13 +29,13 @@ if [ ! -e ./build/input/boot.fat ]; then
     exit 1
 fi
 
-# load .env
-set -a && source .env && set +a
-
 set -eux
 
 if [ -z "${IMAGE_NAME:-}" ]; then
     IMAGE_NAME="sdcard-$MACID"
+    if [ -n "${CODENAME:-}" ]; then
+        IMAGE_NAME="${IMAGE_NAME}-${CODENAME}"
+    fi
 fi
 
 if [ "${NOGUI:-1}" = "0" ]; then
@@ -59,7 +71,7 @@ image ${IMAGE_NAME}.img {
 
 	partition rootfs {
 		partition-type = 0x83
-		image = "rootfs.ext4"
+		image = "${ROOTFS_FILE}"
 		offset = 64M
 	}
 }

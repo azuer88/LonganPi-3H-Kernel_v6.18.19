@@ -43,8 +43,16 @@ full usage. Use `run_docker.sh` as a convenience wrapper:
 ```shell
 run_docker.sh mkkernel.sh
 run_docker.sh mkuboot.sh
+```
+
+`mkrootfs.sh` requires loop-device access inside the container for `mmdebstrap`
+to mount its ext2 image. Pass `--privileged` for that script only:
+
+```shell
 run_docker.sh --privileged mkrootfs.sh
 ```
+
+Other scripts (`mkkernel.sh`, `mkuboot.sh`) do not need `--privileged`.
 
 Host still needs `genimage` for `mksdimg.sh` (not in Ubuntu 22.04 repos — build from source):
 
@@ -88,8 +96,10 @@ Copy `.env.example` to `.env` and set the following variables before building:
 | `APT_PROXY`      | No       | Primary APT proxy URL; used if reachable (e.g. `http://aptcacheserver:8000`) |
 | `APT_PROXY_FALLBACK` | No   | Fallback APT proxy URL; used if `APT_PROXY` is unset or unreachable |
 | `NOGUI`          | No       | Set to `1` to skip desktop packages |
+| `CODENAME`       | No       | Debian release codename (e.g. `trixie`, `bookworm`). When set, output files get a `-${CODENAME}` suffix so multiple bases can coexist in `build/` |
+| `NOPASS_SUDO`    | No       | Set to `1` to install a passwordless `sudo` rule for `USER_NAME` via `/etc/sudoers.d/` |
 | `MIRROR`         | No       | Debian mirror URL (default: `http://deb.debian.org`) |
-| `IMAGE_NAME`     | No       | Override output image name (default: `sdcard-$MACID`) |
+| `IMAGE_NAME`     | No       | Override output image name (default: `sdcard-$MACID[-${CODENAME}]`) |
 
 ## Build pipeline
 
@@ -99,14 +109,14 @@ The build is split into two phases:
 - **Rootfs** — split into a slow base build (`mkrootfs.sh`) and a fast per-device customization (`mkcustomrootfs.sh` + `mksdimg.sh`). The base ext4 is cached; only re-run `mkrootfs.sh` when changing the package list.
 
 ```
-mkatf.sh                                → build/bl31.bin
-run_docker.sh mkuboot.sh                → build/u-boot-sunxi-with-spl.bin
-mklinux.sh                              → build/linux/
-run_docker.sh mkkernel.sh               → build/*.deb
-mkoverlay.sh                            → build/overlay.deb
-run_docker.sh --privileged mkrootfs.sh  → build/rootfs_base.ext4  (slow: ~30–60 min)
-sudo mkcustomrootfs.sh                  → build/input/rootfs.ext4
-mksdimg.sh                              → build/images/sdcard-MACID.img.xz
+mkatf.sh            → build/bl31.bin
+mkuboot.sh          → build/u-boot-sunxi-with-spl.bin
+mklinux.sh          → build/linux/
+mkkernel.sh         → build/*.deb
+mkoverlay.sh        → build/overlay.deb
+mkrootfs.sh         → build/rootfs_base[-CODENAME].ext4  (slow: ~30–60 min)
+mkcustomrootfs.sh   → build/input/rootfs[-CODENAME].ext4
+mksdimg.sh          → build/images/sdcard-MACID[-CODENAME].img.xz
 ```
 
 ### Step 1 — ARM Trusted Firmware
@@ -198,10 +208,10 @@ Output: `build/overlay.deb`
 run_docker.sh --privileged mkrootfs.sh
 ```
 
-Bootstraps a Debian bookworm arm64 rootfs using `mmdebstrap`, extracts it
-into a 6 GB sparse ext4 image, and saves it as `build/rootfs_base.ext4`.
-This is the slow step (~30–60 min depending on network). The result is cached
-— re-run only when changing the package list.
+Bootstraps a Debian arm64 rootfs using `mmdebstrap` and saves it as
+`build/rootfs_base.ext4` (or `build/rootfs_base-${CODENAME}.ext4` when
+`CODENAME` is set in `.env`). This is the slow step (~30–60 min depending on
+network). The result is cached — re-run only when changing the package list.
 
 Package groups installed:
 
@@ -226,17 +236,18 @@ Output: `build/rootfs_base.ext4`
 mkcustomrootfs.sh
 ```
 
-Sparse-copies `build/rootfs_base.ext4` to `build/input/rootfs.ext4`, mounts
-it (auto-escalates to root via sudo), runs all scripts in `custom/` via
-`customize_rootfs.sh`, creates `build/input/boot.fat` (63 MB FAT32 image
-containing the kernel, DTB, and `extlinux/extlinux.conf`), then resizes the
-rootfs to minimum used + 500 MB headroom.
+Sparse-copies the base ext4 to `build/input/rootfs[-CODENAME].ext4`, pre-expands
+it by 1 GB to ensure room for kernel deb extraction, mounts it (auto-escalates
+to root via sudo), runs all scripts in `custom/` via `customize_rootfs.sh`,
+creates `build/input/boot.fat` (63 MB FAT32 image containing the kernel, DTB,
+and `extlinux/extlinux.conf`), then shrinks the rootfs to minimum used + 500 MB
+headroom.
 
 **Must run on the host** — requires root for `mount`, `mkfs.fat`, and `mcopy`.
 Do not run inside Docker.
 
-Requires: `build/rootfs_base.ext4`
-Output: `build/input/rootfs.ext4`
+Requires: `build/rootfs_base[-CODENAME].ext4`
+Output: `build/input/rootfs[-CODENAME].ext4`
 
 To iterate on customization scripts without rebuilding the base rootfs:
 
@@ -263,7 +274,7 @@ Creates the final SD card image using `genimage` with this layout:
 |---------------------|---------|---------|
 | U-Boot SPL+env      | 8 KiB   | `u-boot-sunxi-with-spl.bin` (not in partition table) |
 | Boot FAT32 (MBR p1) | 1 MiB   | `boot.fat` — vmlinuz, DTB, `extlinux/extlinux.conf`; `PARTUUID=4c503348-01` |
-| rootfs ext4 (MBR p2)| 64 MiB  | `rootfs.ext4`; `PARTUUID=4c503348-02` |
+| rootfs ext4 (MBR p2)| 64 MiB  | `rootfs[-CODENAME].ext4`; `PARTUUID=4c503348-02` |
 
 A fixed MBR disk signature (`0x4c503348`) is written so PARTUUIDs are stable
 across reflashes regardless of `mmcblkX` device assignment. The FAT boot
@@ -393,45 +404,28 @@ sudo sync
 
 ## Tips
 
-### Switching between GUI and no-GUI images without rebuilding the base rootfs
+### Building multiple bases (different distros or GUI/no-GUI)
 
-`mkrootfs.sh` is slow (~30–60 min). If you want to produce both a desktop image
-and a headless image, build each base rootfs once and cache them by name, then
-use a symlink to select which one `mkcustomrootfs.sh` uses.
+`mkrootfs.sh` is slow (~30–60 min). Use `CODENAME` in `.env` to keep multiple
+base images in `build/` simultaneously — each gets a distinct filename and the
+downstream scripts (`mkcustomrootfs.sh`, `mksdimg.sh`) pick the right one
+automatically.
 
-**Build and save both base images:**
-
-```shell
-# Headless base
-NOGUI=1 bash mkrootfs.sh
-mv build/rootfs_base.ext4 build/rootfs_base_nogui.ext4
-
-# Desktop base
-NOGUI=0 bash mkrootfs.sh
-mv build/rootfs_base.ext4 build/rootfs_base_gui.ext4
-```
-
-**Switch between them with a symlink:**
+**Example — headless trixie + desktop bookworm:**
 
 ```shell
-cd build/
+# Headless trixie base
+CODENAME=trixie NOGUI=1 mkrootfs.sh
+# → build/rootfs_base-trixie.ext4
 
-# Use headless base
-ln -sf rootfs_base_nogui.ext4 rootfs_base.ext4
-
-# Use desktop base
-ln -sf rootfs_base_gui.ext4 rootfs_base.ext4
+# Desktop bookworm base (leave CODENAME unset → plain filename)
+NOGUI=0 mkrootfs.sh
+# → build/rootfs_base.ext4
 ```
 
-Then run `mkcustomrootfs.sh` and `mksdimg.sh` as normal. `mkcustomrootfs.sh`
-checks for `build/rootfs_base.ext4` with `-e`, which follows symlinks, so this
-works correctly. Note that `--reflink=auto` (used for the sparse copy) requires
-both files to be on the same filesystem; a symlink pointing across filesystems
-will still work but will fall back to a regular sparse copy.
-
-Remember to set `NOGUI` in `.env` to match the base image you have linked —
-`mkcustomrootfs.sh` reads `.env` and the image name will include a `-GUI` or
-`-NOGUI` suffix accordingly (added by `mksdimg.sh`).
+Set `CODENAME=trixie` (or unset) in `.env`, then run `mkcustomrootfs.sh` and
+`mksdimg.sh` as normal — they will use the matching base and append the codename
+to the output image name.
 
 ## 40-pin GPIO header
 

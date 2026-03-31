@@ -14,7 +14,10 @@ set -a && source .env && set +a
 
 if [ -z "$MMDEBSTRAP" ]; then MMDEBSTRAP=mmdebstrap; fi
 if [ -z "$MIRROR" ]; then MIRROR=http://deb.debian.org; fi
-if [ -z "$CODENAME" ]; then CODENAME=bookworm; NEOFETCH="neofetch"; fi
+_CODENAME="${CODENAME:-bookworm}"   # local default; don't export so output path stays plain when CODENAME unset
+if [ -z "$NEOFETCH" ]; then
+    if [ "${_CODENAME}" = "bookworm" ]; then NEOFETCH="neofetch"; else NEOFETCH="fastfetch"; fi
+fi
 
 BASE_PACKAGE="ca-certificates locales dosfstools binutils file \
 	tree sudo bash-completion memtester openssh-server wireless-regdb \
@@ -30,7 +33,8 @@ BASE_PACKAGE="ca-certificates locales dosfstools binutils file \
 if [ -z "$USER_PACKAGE" ]; then 
     # common packages I use that are not strictly necessary 
     USER_PACKAGE="build-essential libevent-dev libjpeg-dev libbsd-dev \
-	    git pkg-config curl gpiod lm-sensors libgpiod-dev seatd mpv"
+	    git pkg-config curl gpiod lm-sensors libgpiod-dev seatd mpv \
+	    python3 python3-minimal python3-setuptools"
 fi
 
 if [ -z "$DESKTOP_PACKAGE" ]; then
@@ -47,15 +51,20 @@ mkdir -p build/keyrings
 
 set -euxo pipefail
 
-BASE_EXT4="./build/rootfs_base.ext4"
-BASE_EXT2="./build/rootfs_base.ext2"
+if [ -n "${CODENAME:-}" ]; then
+    BASE_EXT4="./build/rootfs_base-${CODENAME}.ext4"
+    BASE_EXT2="./build/rootfs_base-${CODENAME}.ext2"
+else
+    BASE_EXT4="./build/rootfs_base.ext4"
+    BASE_EXT2="./build/rootfs_base.ext2"
+fi
 
 # Write sources list to a temp file so mmdebstrap can write directly to $MNT
 # (avoids the stdin→tar pipe which fails with fuse2fs+fakeroot)
 SOURCES=$(mktemp)
 cat > "$SOURCES" << EOF
-deb [trusted=yes] ${MIRROR}/debian/ ${CODENAME} main contrib non-free non-free-firmware
-deb [trusted=yes] ${MIRROR}/debian/ ${CODENAME}-updates main contrib non-free non-free-firmware
+deb [trusted=yes] ${MIRROR}/debian/ ${_CODENAME} main contrib non-free non-free-firmware
+deb [trusted=yes] ${MIRROR}/debian/ ${_CODENAME}-updates main contrib non-free non-free-firmware
 EOF
 
 # Resolve apt proxy: use APT_PROXY if set and reachable, else APT_PROXY_FALLBACK if set and reachable, else no proxy
@@ -75,13 +84,18 @@ fi
 
 MMDEBSTRAP_OPTS=(
     ${APT_PROXY_URL:+--aptopt="Acquire::HTTP::Proxy \"${APT_PROXY_URL}\";"}
-    --aptopt="Dir::Etc::Trusted \"$(pwd)/build/keyrings/debian-archive-keyring.gpg\""  
+    --aptopt="Dir::Etc::Trusted \"$(pwd)/build/keyrings/debian-archive-keyring.gpg\""
     --architectures=arm64 -v -d
     --include="${BASE_PACKAGE} ${DESKTOP_PACKAGE} ${USER_PACKAGE}"
+    # py3compile fails in cross-arch chroot (dpkg -L fails during configure).
+    # Divert py3compile before python3 is installed so our stub survives package
+    # extraction, then remove the diversion and reinstall to restore the real file.
+    --essential-hook='chroot "$1" dpkg-divert --local --rename --add /usr/bin/py3compile && printf "#!/bin/sh\nexit 0\n" > "$1/usr/bin/py3compile" && chmod +x "$1/usr/bin/py3compile"'
+    --customize-hook='rm -f "$1/usr/bin/py3compile" && chroot "$1" dpkg-divert --rename --remove /usr/bin/py3compile'
 )
 
 rm -f "$BASE_EXT2" "$BASE_EXT4"
-$MMDEBSTRAP "${MMDEBSTRAP_OPTS[@]}" "$CODENAME" "$BASE_EXT2" "$SOURCES"
+$MMDEBSTRAP "${MMDEBSTRAP_OPTS[@]}" "$_CODENAME" "$BASE_EXT2" "$SOURCES"
 
 rm "$SOURCES"
 # Convert ext2 → ext4 (add journal and ext4 features)
