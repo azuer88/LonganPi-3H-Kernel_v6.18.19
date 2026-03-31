@@ -91,7 +91,7 @@ done
 # Copy out-of-tree BSP drivers into the kernel source tree
 echo ""
 echo "--- copying bsp/ into kernel source ---"
-cp -raf "$SCRIPT_DIR/bsp" "$LINUX_DIR/"
+cp -rn "$SCRIPT_DIR/bsp" "$LINUX_DIR/"
 
 echo ""
 echo "=== Done ==="

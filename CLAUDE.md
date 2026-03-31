@@ -13,7 +13,7 @@ Build system for a customized Debian bookworm arm64 SD card image for the Longan
 bash mkkernel.sh           # incremental build
 bash mkkernel.sh --clean   # clean build (after config changes)
 ```
-The kernel source at `build/linux` is pre-patched (51 commits on 6.18.19). Outputs `build/*.deb`.
+The kernel source at `build/linux` is pre-patched (62 commits on 6.18.19). Outputs `build/*.deb`.
 
 ### Iterate on rootfs customization scripts (fast, no rebuild)
 ```bash
@@ -112,7 +112,7 @@ The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`. The SD card
 
 ### Kernel source (`build/linux`)
 - Base: Linux 6.18.19 (commit `4aea1dc4c`)
-- 62 patches applied; current HEAD: `09a8d4145`
+- 62 patches applied; current HEAD: `98da91f69`
 - Patch files: `kernel_patches/0001-*.patch` … `0062-*.patch`
 - Full apply history: `kernel_patches/STATUS.md`
 - Config: `arch/arm64/configs/longanpi_3h_defconfig`
