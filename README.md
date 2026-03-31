@@ -36,14 +36,22 @@ Build the image once from the repo root:
 docker build --network=host -f docker/Dockerfile -t lpi3h-build .
 ```
 
-The image includes all cross-compilation tools, `mmdebstrap`, `genimage`,
+The image includes all cross-compilation tools, `mmdebstrap`,
 `qemu-user-static`, and `e2fsprogs`. See [`docs/docker-build.md`](docs/docker-build.md) for
-full usage including kernel and rootfs build commands.
-
-Host still needs `genimage` for `mksdimg.sh`:
+full usage. Use `run_docker.sh` as a convenience wrapper:
 
 ```shell
-sudo apt install genimage
+bash run_docker.sh mkkernel.sh
+bash run_docker.sh mkuboot.sh
+bash run_docker.sh --privileged mkrootfs.sh
+```
+
+Host still needs `genimage` for `mksdimg.sh` (not in Ubuntu 22.04 repos — build from source):
+
+```shell
+sudo apt install libconfuse-dev libarchive-dev pkg-config autoconf automake libtool
+git clone --depth 1 https://github.com/pengutronix/genimage.git /tmp/genimage
+cd /tmp/genimage && autoreconf -is && ./configure && make && sudo make install
 ```
 
 ### Without Docker
@@ -60,7 +68,7 @@ sudo apt install \
     git \
     mmdebstrap qemu-user-static binfmt-support \
     genext2fs e2fsprogs debian-archive-keyring \
-    genimage fuse2fs
+    fuse2fs
 ```
 
 ## Configuration
@@ -91,14 +99,14 @@ The build is split into two phases:
 - **Rootfs** — split into a slow base build (`mkrootfs.sh`) and a fast per-device customization (`mkcustomrootfs.sh` + `mksdimg.sh`). The base ext4 is cached; only re-run `mkrootfs.sh` when changing the package list.
 
 ```
-mkatf.sh            → build/bl31.bin
-mkuboot.sh          → build/u-boot-sunxi-with-spl.bin   (requires bl31.bin)
-mklinux.sh          → build/linux/                       (clone + patch kernel source)
-mkkernel.sh         → build/*.deb                        (kernel + headers; requires build/linux)
-mkoverlay.sh        → build/overlay.deb                  (board-specific files)
-mkrootfs.sh         → build/rootfs_base.ext4             (slow: ~30–60 min)
-mkcustomrootfs.sh   → build/input/rootfs.ext4            (fast: ~5 min)
-mksdimg.sh          → build/images/sdcard-MACID.img.xz   (fast: ~1 min)
+bash mkatf.sh                                → build/bl31.bin
+bash run_docker.sh mkuboot.sh                → build/u-boot-sunxi-with-spl.bin
+bash mklinux.sh                              → build/linux/
+bash run_docker.sh mkkernel.sh               → build/*.deb
+bash mkoverlay.sh                            → build/overlay.deb
+bash run_docker.sh --privileged mkrootfs.sh  → build/rootfs_base.ext4  (slow: ~30–60 min)
+sudo bash mkcustomrootfs.sh                  → build/input/rootfs.ext4
+bash mksdimg.sh                              → build/images/sdcard-MACID.img.xz
 ```
 
 ### Step 1 — ARM Trusted Firmware
@@ -119,7 +127,7 @@ Output: `build/bl31.bin`
 ### Step 2 — U-Boot
 
 ```shell
-bash mkuboot.sh
+bash run_docker.sh mkuboot.sh
 ```
 
 Clones U-Boot at a pinned commit, applies patches from `uboot/*.patch` in
@@ -138,7 +146,7 @@ Output: `build/u-boot-sunxi-with-spl.bin`
 bash mklinux.sh
 ```
 
-Shallow-clones Linux 6.18.19 from `torvalds/linux` and applies all 59 LonganPi 3H
+Shallow-clones Linux 6.18.19 from `torvalds/linux` and applies all 62 LonganPi 3H
 patches from `kernel_patches/` in order, producing `build/linux`. Skips silently
 if `build/linux` already exists; use `--force` to re-clone from scratch.
 
@@ -152,7 +160,7 @@ Output: `build/linux/`
 ### Step 4 — Linux kernel build
 
 ```shell
-bash mkkernel.sh [--clean]
+bash run_docker.sh mkkernel.sh [--clean]
 ```
 
 Builds the kernel for arm64 from the source tree at `build/linux` and
@@ -187,7 +195,7 @@ Output: `build/overlay.deb`
 ### Step 6 — Base rootfs
 
 ```shell
-bash mkrootfs.sh
+bash run_docker.sh --privileged mkrootfs.sh
 ```
 
 Bootstraps a Debian bookworm arm64 rootfs using `mmdebstrap`, extracts it
