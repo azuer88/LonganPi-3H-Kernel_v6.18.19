@@ -88,6 +88,11 @@ for patch in "${PATCHES[@]}"; do
     git am --3way < "$patch"
 done
 
+# Copy out-of-tree BSP drivers into the kernel source tree
+echo ""
+echo "--- copying bsp/ into kernel source ---"
+cp -raf "$SCRIPT_DIR/bsp" "$LINUX_DIR/"
+
 echo ""
 echo "=== Done ==="
 echo "  HEAD: $(git rev-parse --short HEAD)"
