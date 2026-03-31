@@ -12,21 +12,28 @@ docker build --network=host -f docker/Dockerfile -t lpi3h-build .
 
 Uses apt proxy `http://aptcacheserver:8000/` (primary) with automatic fallback to `http://localhost:8080/`.
 
+## run_docker.sh
+
+`run_docker.sh` wraps the standard `docker run` invocation:
+
+```sh
+bash run_docker.sh <script.sh> [args...]
+bash run_docker.sh --privileged <script.sh> [args...]
+```
+
+It mounts the SDK at `/sdk`, sets `CROSS_COMPILE=aarch64-linux-gnu-`, and runs
+`sudo chown $USER build/` after the container exits so output files are host-writable.
+
 ## Build the kernel
 
 ```sh
-docker run --rm --network=host \
-  --ulimit nofile=1048576:1048576 \
-  --cpus="10" \
-  -v /extra/LPI3H/LonganPi-3H-SDK:/sdk \
-  lpi3h-build \
-  bash -c "cd /sdk && CROSS_COMPILE=aarch64-linux-gnu- bash mkkernel.sh"
+bash run_docker.sh mkkernel.sh
 ```
 
 Add `--clean` after config changes:
 
 ```sh
-  bash -c "cd /sdk && CROSS_COMPILE=aarch64-linux-gnu- bash mkkernel.sh --clean"
+bash run_docker.sh mkkernel.sh --clean
 ```
 
 ## Build U-Boot
@@ -34,12 +41,7 @@ Add `--clean` after config changes:
 Clones u-boot at `da2e3196e`, applies all `uboot/*.patch` files, and compiles on first run. Skips clone if `build/uboot` already exists.
 
 ```sh
-docker run --rm --network=host \
-  --ulimit nofile=1048576:1048576 \
-  --cpus="10" \
-  -v /extra/LPI3H/LonganPi-3H-SDK:/sdk \
-  lpi3h-build \
-  bash -c "cd /sdk && CROSS_COMPILE=aarch64-linux-gnu- bash mkuboot.sh"
+bash run_docker.sh mkuboot.sh
 ```
 
 Output: `build/u-boot-sunxi-with-spl.bin`
@@ -49,9 +51,9 @@ To flash to a running board's SD card:
 sudo dd if=build/u-boot-sunxi-with-spl.bin of=/dev/mmcblk1 bs=1024 seek=8 conv=notrunc && sudo sync
 ```
 
-To rebuild from scratch (e.g. after adding patches), remove `build/uboot` via Docker first (it's owned by root):
+To rebuild from scratch (e.g. after adding patches):
 ```sh
-docker run --rm -v /extra/LPI3H/LonganPi-3H-SDK:/sdk lpi3h-build bash -c "rm -rf /sdk/build/uboot"
+bash run_docker.sh bash -c "rm -rf /sdk/build/uboot"
 ```
 
 ## Build the rootfs
@@ -59,20 +61,17 @@ docker run --rm -v /extra/LPI3H/LonganPi-3H-SDK:/sdk lpi3h-build bash -c "rm -rf
 Requires `--privileged` for mmdebstrap chroot:
 
 ```sh
-docker run --rm --privileged --network=host \
-  -v /extra/LPI3H/LonganPi-3H-SDK:/sdk \
-  lpi3h-build \
-  bash -c "cd /sdk && bash mkrootfs.sh"
+bash run_docker.sh --privileged mkrootfs.sh
 ```
 
 ## Critical constraints
 
 - **Must bind-mount from a real filesystem** (ext4, xfs, etc.). Never from a unionfs, overlayfs, or any FUSE-based filesystem — these cause `ar: Too many open files` during kernel builds.
-- **`--ulimit nofile=1048576:1048576`** required for kernel link stage.
-- **`--network=host`** required for apt proxy.
+- **`--ulimit nofile=1048576:1048576`** required for kernel link stage (handled by run_docker.sh).
+- **`--network=host`** required for apt proxy (handled by run_docker.sh).
 - **`--privileged`** required for rootfs build (mmdebstrap needs real root for arm64 cross-bootstrap).
 - **`mkcustomrootfs.sh` and `mksdimg.sh` must run on the host**, not in Docker — they need root access to `mount`, `mkfs.fat`, and `mcopy` for the FAT boot partition. Run them directly: `sudo bash mkcustomrootfs.sh && bash mksdimg.sh`.
-- **`uuidgen` is not in the Docker image** — `07_wifi.sh` falls back to `/proc/sys/kernel/random/uuid` automatically, but this is a reminder not to add scripts that depend on `uuidgen` inside Docker.
+- **`uuidgen` is not in the Docker image** — `07_wifi.sh` falls back to `/proc/sys/kernel/random/uuid` automatically.
 
 ## Stale x86-64 binaries (if build/linux was rsynced from longan-builder)
 

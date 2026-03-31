@@ -10,8 +10,8 @@ Build system for a customized Debian bookworm arm64 SD card image for the Longan
 
 ### Build the kernel (most common task)
 ```bash
-bash mkkernel.sh           # incremental build
-bash mkkernel.sh --clean   # clean build (after config changes)
+bash run_docker.sh mkkernel.sh           # incremental build
+bash run_docker.sh mkkernel.sh --clean   # clean build (after config changes)
 ```
 The kernel source at `build/linux` is pre-patched (62 commits on 6.18.19). Outputs `build/*.deb`.
 
@@ -23,13 +23,14 @@ bash mktestcustom.sh --reset   # force re-extract base layer from rootfs_base.ex
 
 ### Full image build (from scratch)
 ```bash
-bash mkatf.sh             # ARM Trusted Firmware → build/bl31.bin
-bash mkuboot.sh           # U-Boot → build/u-boot-sunxi-with-spl.bin
-bash mkkernel.sh          # kernel .debs → build/
-bash mkoverlay.sh         # board overlay .deb → build/
-bash mkrootfs.sh          # base rootfs → build/rootfs_base.ext4  (slow, ~30-60 min)
-bash mkcustomrootfs.sh    # per-device customization → build/input/rootfs.ext4
-bash mksdimg.sh           # SD image → build/images/sdcard-$MACID.img.xz
+bash mkatf.sh                              # ARM Trusted Firmware → build/bl31.bin
+bash run_docker.sh mkuboot.sh             # U-Boot → build/u-boot-sunxi-with-spl.bin
+bash mklinux.sh                           # clone + patch kernel source → build/linux/
+bash run_docker.sh mkkernel.sh            # kernel .debs → build/
+bash mkoverlay.sh                         # board overlay .deb → build/
+bash run_docker.sh --privileged mkrootfs.sh  # base rootfs → build/rootfs_base.ext4 (slow)
+sudo bash mkcustomrootfs.sh               # per-device customization → build/input/rootfs.ext4
+bash mksdimg.sh                           # SD image → build/images/sdcard-$MACID.img.xz
 ```
 
 ### Install updated kernel to a running board
