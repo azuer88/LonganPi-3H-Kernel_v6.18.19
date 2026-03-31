@@ -100,7 +100,11 @@ The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`. The SD card
 
 ### firstboot.sh behaviour
 - Runs **once** on first boot via `firstboot.service`; renamed to `/opt/firstboot.sh.done` afterward (never reruns)
-- To manually resize rootfs on a running board: `parted /dev/mmcblk0 resizepart 2 100%` then `resize2fs /dev/mmcblk0p2` (online resize is safe)
+- SD card is **`/dev/mmcblk1`** in Linux (not mmcblk0 — eMMC registers as mmcblk0 even when it fails to init)
+- FAT boot partition mounts as: `sudo mount -t vfat -o iocharset=utf8 /dev/mmcblk1p1 /mnt`
+- To manually resize rootfs on a running board: `parted /dev/mmcblk1 resizepart 2 100%` then `resize2fs /dev/mmcblk1p2` (online resize is safe)
+- To update FAT boot partition after kernel upgrade: mount mmcblk1p1 and copy `/boot/vmlinuz-6.18.19` + DTB from `/usr/lib/linux-image-6.18.19/allwinner/`
+- **Do not use parted without saving/restoring the disk signature** — parted randomises the MBR disk ID, breaking PARTUUID boot
 
 ### Serial console interaction
 - Use Python `pyserial` for scripted serial interaction when board has no SSH yet
