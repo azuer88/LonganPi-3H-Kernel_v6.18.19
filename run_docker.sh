@@ -9,7 +9,9 @@ if [ "${1:-}" = "--privileged" ]; then
     shift
 fi
 
-docker run --rm --network=host --ulimit nofile=1048576:1048576 --cpus="10" \
+CPUS=$(( $(nproc) > 3 ? $(nproc) - 2 : 2 ))
+
+docker run --rm --network=host --ulimit nofile=1048576:1048576 --cpus="$CPUS" \
     $EXTRA_FLAGS \
     -v "$CURDIR":/sdk lpi3h-build \
     bash -c "cd /sdk && CROSS_COMPILE=aarch64-linux-gnu- bash $*"
