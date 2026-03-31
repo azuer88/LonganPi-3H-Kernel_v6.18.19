@@ -512,8 +512,9 @@ Resolution:  1920×1080 fullscreen
 | effect2d | 359 |
 | **glmark2 Score** | **206** |
 
-To run the benchmark yourself (installed by default in the image):
+To run the benchmark yourself:
 
 ```shell
+sudo apt install glmark2-drm
 glmark2-drm --size 1280x720
 ```
