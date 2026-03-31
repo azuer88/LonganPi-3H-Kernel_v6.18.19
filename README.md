@@ -12,7 +12,7 @@ Based on [sipeed/LonganPi-3H-SDK](https://github.com/sipeed/LonganPi-3H-SDK).
 | CPU | ✅ Working | 4× Cortex-A53 @ up to 1416 MHz |
 | HDMI display | ✅ Working | DE33 driver; `video=HDMI-A-1:1280x720@60` in cmdline — needed if monitor is in power-save at boot, may not be required for all setups |
 | HDMI audio | ✅ Working | AHUB driver (`sun50i-ahub`); appears as `card 0: HDMI Audio` |
-| GPU (Mali-G31) | ✅ Working | Panfrost driver; `/dev/dri/renderD128`; 432 MHz |
+| GPU (Mali-G31) | ✅ Working | Panfrost driver; `/dev/dri/renderD128`; 432 MHz; OpenGL ES 3.1; glmark2 score 206 @ 1920×1080 |
 | VPU (Cedrus) | ✅ Working | H.264 / HEVC hardware decode; `/dev/video0` |
 | WiFi | ✅ Working | AIC8800D80 USB dongle (included on board) |
 | Bluetooth | ✅ Working | AIC8800 BT via USB (`hci0`) |
@@ -491,3 +491,29 @@ Pins not on header (reserved):
 The side debug header also exposes a 5V pin connected to the board's 5V rail. **Do not connect 5V on the debug header if the board is already powered via USB-C** — both supplies would be shorted together.
 
 Interfaces enabled in DTS: `uart1` (PG6/7), `i2c3` (PG18/17), `spi1` (PH5–8), `pwm` (PH2/3 via `pwm-fan`).
+
+## GPU benchmark
+
+Tested with `glmark2-drm` (DRM/KMS backend, no X11 required) on kernel 6.18.19 + Mesa 22.3.6:
+
+```
+GL_VENDOR:   Panfrost
+GL_RENDERER: Mali-G31 (Panfrost)
+GL_VERSION:  OpenGL ES 3.1 Mesa 22.3.6
+Resolution:  1920×1080 fullscreen
+```
+
+| Scene | FPS |
+|-------|-----|
+| build (no VBO) | 153 |
+| build (VBO) | 153 |
+| shading (gouraud) | 103 |
+| bump | 271 |
+| effect2d | 359 |
+| **glmark2 Score** | **206** |
+
+To run the benchmark yourself (installed by default in the image):
+
+```shell
+glmark2-drm --size 1280x720
+```
