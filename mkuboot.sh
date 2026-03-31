@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+pushd "$(dirname "$(realpath "$0")")" > /dev/null
 
 mkdir -p build
 
@@ -38,3 +39,5 @@ make longanpi_3h_defconfig
 export BL31=$(pwd)/../bl31.bin
 make -j$(nproc)
 cp u-boot-sunxi-with-spl.bin ../
+
+popd > /dev/null

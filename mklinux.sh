@@ -13,6 +13,7 @@
 #   PATCHES_DIR    Patch directory  (default: ./kernel_patches)
 #   BASE_COMMIT    Base commit to check out (default: 4aea1dc4c)
 #   BASE_TAG       Tag for shallow clone   (default: v6.18.19)
+pushd "$(dirname "$(realpath "$0")")" > /dev/null
 
 set -euo pipefail
 
@@ -98,3 +99,6 @@ echo "=== Done ==="
 echo "  HEAD: $(git rev-parse --short HEAD)"
 echo "  Patches applied: ${#PATCHES[@]}"
 echo "  Ready for: bash mkkernel.sh"
+
+popd > /dev/null
+

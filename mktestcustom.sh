@@ -12,6 +12,8 @@
 # Usage:
 #   bash mktestcustom.sh           # run custom scripts on overlay
 #   bash mktestcustom.sh --reset   # force re-extract base from rootfs_base.ext4
+pushd "$(dirname "$(realpath "$0")")" > /dev/null
+
 
 BASE_EXT4="./build/rootfs_base.ext4"
 if [ ! -e "$BASE_EXT4" ]; then
@@ -66,5 +68,7 @@ source ./customize_rootfs.sh "$MERGED"
 echo "=== Done ==="
 
 fusermount -u "$MERGED"
+
+popd > /dev/null 
 
 echo "mktestcustom done. Inspect build/rootfs_upper/ for changes."

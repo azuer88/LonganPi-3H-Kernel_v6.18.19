@@ -10,6 +10,7 @@
 #   CROSS_COMPILE Cross compiler prefix     (default: aarch64-linux-gnu-)
 #   JOBS          Parallel jobs             (default: nproc)
 #   CONFIG        Defconfig name            (default: longanpi_3h_defconfig)
+pushd "$(dirname "$(realpath "$0")")" > /dev/null
 
 set -euo pipefail
 
@@ -72,3 +73,5 @@ for deb in "$BUILD_OUT"/linux-image-*.deb "$BUILD_OUT"/linux-headers-*.deb "$BUI
 done
 
 ls -lh "$BUILD_OUT"/*.deb 2>/dev/null || true
+
+popd > /dev/null || true 

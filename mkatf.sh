@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+pushd "$(dirname "$(realpath "$0")")" > /dev/null
 
-mkdir -p build
+mkdir -p build 
+
 
 if [ -z "$URL" ]
 then
@@ -31,4 +33,12 @@ cd build/arm-trusted-firmware
 make clean
 rm -rf ./build
 make PLAT=sun50i_h616 bl31
-cp build/sun50i_h616/release/bl31.bin ../
+# cp build/sun50i_h616/release/bl31.bin ../
+
+cd ../../  
+chown $UID:$UID -R build/arm-trusted-firmware 
+ 
+cp build/arm-trusted-firmware/build/sun50i_h616/release/bl31.bin ../
+
+popd > /dev/null
+
