@@ -1,0 +1,57 @@
+From e1fed238c22f7011f8a1a4fe33389a796c6cf1e9 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Wed, 1 Apr 2026 02:14:08 +0800
+Subject: [PATCH] aic8800_fdrv: fix use-after-free and double-free in
+ aicwf_process_rxframes
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+In the USB aggregate RX path (aicwf_usb_rx_aggr=true), when pkt_len > 1600
+is detected inside the inner while(aicwf_another_ptk(skb)) loop, the code
+freed the container skb with dev_kfree_skb() then used continue, which
+re-evaluated the inner loop condition on the freed skb.
+
+This caused a use-after-free read in aicwf_another_ptk(), and if the freed
+memory still appeared to contain packet data, the loop body would execute
+again on the freed skb. If that iteration hit the config packet path and
+kmalloc failed, aicwf_dev_skb_free() would be called on the already-freed
+skb, triggering:
+
+  refcount_t: underflow; use-after-free
+  sk_skb_reason_drop -> aicwf_process_rxframes
+
+The premature atomic_dec() also caused rx_cnt to go out of sync,
+contributing to the "rxq is over flow" errors seen in parallel.
+
+Fix: replace dev_kfree_skb + atomic_dec + continue with break, letting
+the outer loop's existing dev_kfree_skb + atomic_dec (lines 787-788)
+perform the single correct cleanup of the container skb.
+
+This affects the AIC8800D80 on LonganPi 3H — despite the device name,
+it reports USB PID 0x8d81 which sets aicwf_usb_rx_aggr=true.
+
+Signed-off-by: Blue Cuenca <blue.cuenca@gmail.com>
+---
+ drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_txrxif.c | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_txrxif.c b/drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_txrxif.c
+index 2b9ebf4bf..66b0cb386 100644
+--- a/drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_txrxif.c
++++ b/drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_txrxif.c
+@@ -730,9 +730,8 @@ int aicwf_process_rxframes(struct aicwf_rx_priv *rx_priv)
+ 	        pkt_len = (*skb->data | (*(skb->data + 1) << 8));
+ 	        //printk("p:%d, s:%d , %x\n", pkt_len, skb->len, data[2]);
+ 	        if (pkt_len > 1600) {
+-	            dev_kfree_skb(skb);
+-	            atomic_dec(&rx_priv->rx_cnt);
+-	                continue;
++	            txrx_err("pkt_len > 1600, dropping container skb\n");
++	            break;
+ 	        }
+ 
+ 	        if((skb->data[2] & USB_TYPE_CFG) != USB_TYPE_CFG) { // type : data
+-- 
+2.17.1
+
