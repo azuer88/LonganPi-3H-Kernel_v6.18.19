@@ -3,6 +3,8 @@
 Build scripts for the LonganPi 3H (Allwinner H618, arm64) SD card image.
 Tested on Ubuntu 22.04 LTS.
 
+Testing trixie resulted in slower video decode, for some reason.  Haven't gotten to dig deeper.
+
 Based on [sipeed/LonganPi-3H-SDK](https://github.com/sipeed/LonganPi-3H-SDK).
 
 ## Hardware status (kernel 6.18.19)
