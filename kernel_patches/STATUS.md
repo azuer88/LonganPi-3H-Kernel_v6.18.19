@@ -240,8 +240,50 @@ Installed on lpi3h-f1a0 (2026-03-29), verified working:
 - mpv --vo=gpu with Panfrost renders 1280x720 H264 @ 30fps in real time
 - kmscube confirms OpenGL ES 3.1 / Mali-G31 (Panfrost) pipeline
 
+## AIC8800D80 Bluetooth — investigation result (2026-04-15)
+
+**Conclusion: Classic BT (A2DP) not possible with this chip. BLE also unreachable.**
+
+### What was found
+The AIC8800D80 BT firmware operates in **RWNX mailbox mode** (`AICBT_BTPORT_MB`).
+BT HCI events/responses flow through the WiFi interface (USB interface 2, EP 0x81 IN)
+using the RWNX proprietary protocol — not through the USB BT class interface
+(interface 0, EP 0x83 interrupt IN).
+
+Confirmed via hciconfig: TX=3 bytes (HCI_Reset sent), RX=0 bytes (nothing returned
+on EP 0x83), regardless of driver, timing, or WiFi init state.
+
+The AIC8800DC chip works because its firmware starts in USB HCI mode by default.
+The D80 firmware does not, and `fw_config()` (which activates USB HCI on DC) also
+times out because the chip routes its response through the RWNX mailbox too.
+
+**Additionally: LMP features byte 4 = 0x60 (BR/EDR Not Supported, LE Supported).**
+The chip is BLE-only — no Classic Bluetooth, no A2DP, regardless of HCI access.
+
+### Approaches exhausted
+- Standard kernel btusb → HCI_Reset -110 (EP 0x83 never responds)
+- aic_btusb (CONFIG_BLUEDROID=0) → HCI_Reset -110
+- aic_btusb + fw_config called from btusb_open (after WiFi init) → fw_config -110
+- Timing delays up to 3s after WiFi interface appears → no effect
+
+### Getting BT to work would require
+Implementing a BT HCI transport over the RWNX protocol inside aic8800_fdrv.
+No public protocol documentation exists. Not worth pursuing.
+
+### Recommendation
+For Classic BT / A2DP: use an external USB Bluetooth Classic dongle (CSR8510,
+BCM20702, etc.) — supported out-of-the-box by Linux btusb driver.
+
+### Current board state
+- `/etc/modprobe.d/aic8800-bt.conf`: blacklist aic_btusb
+- kernel btusb=m (was changed from =y during investigation; no functional impact)
+- No btusb-delayed.service; no udev BT rules
+
+---
+
 ## Device configuration (lpi3h-f1a0)
 - /etc/default/u-boot: video=HDMI-A-1:1280x720@60 (force mode for power-saving monitors)
 - /etc/udev/rules.d/99-no-p2p.rules: removes p2p-dev-* interfaces on creation
 - /etc/wpa_supplicant/wpa_supplicant.conf: p2p_disabled=1
 - /etc/systemd/system/wpa_supplicant.service.d/no-p2p.conf: loads above config
+- /etc/modprobe.d/aic8800-bt.conf: blacklist aic_btusb (BT unusable; see above)
