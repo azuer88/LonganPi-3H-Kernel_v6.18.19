@@ -1,6 +1,6 @@
 # kernel_patches Patch Application Status
 ## Target kernel: 6.18.19 (at /home/ubuntu/Projects/test/LonganPi-3H-SDK/build/linux)
-## Applied on: 2026-03-25 | Last updated: 2026-03-28
+## Applied on: 2026-03-25 | Last updated: 2026-04-14
 
 ---
 
@@ -16,8 +16,8 @@
 
 ---
 
-## Applied (62 commits on top of 6.18.19 base: 4aea1dc4c)
-All patches applied except 0048. Current HEAD: 09a8d4145
+## Applied (67 commits on top of 6.18.19 base: 4aea1dc4c)
+All patches applied except 0048. Current HEAD: eb924cc03
 
   829bec518  add lpi3h defconfig                                    ← 0002
   6af6b6e0f  de33 ccu support                                       ← 0010 (fuzz)
@@ -80,6 +80,11 @@ All patches applied except 0048. Current HEAD: 09a8d4145
   5183590ea  defconfig: enable WATCHDOG_HANDLE_BOOT_ENABLED       ← 0060
   8c1dac540  dts: enable LED1 (PG4, active-low)                   ← 0061
   09a8d4145  dts: add spidev node on SPI1 (PH5-PH8 header)       ← 0062
+  e1fed238c  aic8800_fdrv: fix use-after-free in rxframes         ← 0063
+  5da372d71  pwm: sunxi-enhance: port to pwmchip_alloc() API      ← 0064
+  0772c03bc  pwm: sunxi-enhance: propagate DT node to pwm_chip    ← 0065
+  4a13c2ea2  aic_load_fw: fix FORTIFY_SOURCE false positive        ← 0066
+  eb924cc03  aic_load_fw: return -ENODEV instead of -1            ← 0067
 
 Manual fix notes:
   *  0043: PG17/PG18 pin order in h616.dtsi; uart1 pinctrl-names in LPI3H DTS

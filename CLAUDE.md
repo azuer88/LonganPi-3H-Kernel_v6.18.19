@@ -98,6 +98,7 @@ The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`. The SD card
 - `mkcustomrootfs.sh` must run on the **host** (not in Docker) — needs root for `mount`, `mkfs.fat`, `mcopy`
 - `uuidgen` is **not** in the `lpi3h-build` Docker image; `07_wifi.sh` falls back to `/proc/sys/kernel/random/uuid`
 - `build/uboot/` is owned by root (created inside Docker); edit via `docker run --rm -v /extra/LPI3H/LonganPi-3H-SDK:/sdk lpi3h-build bash -c "..."`
+- **`docker run ... | grep` exits 2** even on successful kernel build — ignore exit code; look for `=== Done ===` at end of output
 
 ### firstboot.sh behaviour
 - Runs **once** on first boot via `firstboot.service`; renamed to `/opt/firstboot.sh.done` afterward (never reruns)
@@ -108,16 +109,21 @@ The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`. The SD card
 - **Do not use parted without saving/restoring the disk signature** — parted randomises the MBR disk ID, breaking PARTUUID boot
 
 ### Serial console interaction
-- Use Python `pyserial` for scripted serial interaction when board has no SSH yet
+- Monitor serial: `stty -F /dev/ttyUSB0 115200 cs8 -cstopb -parenb raw -echo && cat /dev/ttyUSB0`
+- Python serial scripting: use virtualenv `/home/lou/.virtualenvs/LPI3H` (has `pyserial`); install missing packages there with `pip install <pkg>`
 - `sudo -S` with heredoc password works over SSH: `sudo -S cmd <<< password`
 
 ### Kernel source (`build/linux`)
 - Base: Linux 6.18.19 (commit `4aea1dc4c`)
-- 62 patches applied; current HEAD: `98da91f69`
-- Patch files: `kernel_patches/0001-*.patch` … `0062-*.patch`
+- 67 patches applied; current HEAD: `eb924cc03`
+- Patch files: `kernel_patches/0001-*.patch` … `0067-*.patch`
 - Full apply history: `kernel_patches/STATUS.md`
 - Config: `arch/arm64/configs/longanpi_3h_defconfig`
 - To revert all patches: `cd build/linux && git reset --hard 4aea1dc4c`
+- **`git` operations in `build/linux` are slow** (~2–3 min per commit) — large repo, plan accordingly
+- To save a new patch: commit in `build/linux`, then `git format-patch -1 HEAD -o kernel_patches/ --start-number NNN`
+- `pwmchip_priv()` is `static` in `core.c` (not exported) — use `pwmchip_get_drvdata()` in out-of-tree drivers
+- USB probe returning `-ENODEV`/`-ENXIO` logs at `dev_dbg`; raw `-1` or other codes log `dev_err`
 
 Notable patches:
 - `0048` — H616/DE33 display (ported to 6.18 API); required for HDMI output
@@ -129,6 +135,11 @@ Notable patches:
 - `0060` — defconfig: enable `WATCHDOG_HANDLE_BOOT_ENABLED` (kick bootloader watchdog during boot)
 - `0061` — dts: enable LED1 (PG4, active-low)
 - `0062` — dts: add spidev node on SPI1 → `/dev/spidev1.0` (pins PH5–PH8 on 40-pin header)
+- `0063` — aic8800_fdrv: use-after-free and double-free fix in aicwf_process_rxframes
+- `0064` — pwm-sunxi-enhance: port to `pwmchip_alloc()` API (Linux 6.7+ rejects embedded `struct pwm_chip`)
+- `0065` — pwm-sunxi-enhance: propagate platform device `of_node` to pwm_chip after `pwmchip_alloc()`
+- `0066` — aic_load_fw: fix FORTIFY_SOURCE false positive in `aicbt_patch_info_unpack` memcpy
+- `0067` — aic_load_fw: return `-ENODEV` for post-firmware 8D81 re-enumeration (silences boot error log)
 
 ### U-Boot source (`build/uboot`)
 - Cloned and patched by `mkuboot.sh` on first run (base: `da2e3196e`)
