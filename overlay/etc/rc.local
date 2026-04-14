@@ -11,9 +11,4 @@
 #
 # By default this script does nothing.
 
-# Enable bt, wifi and eth by default
-connmanctl enable bluetooth 
-connmanctl enable wifi
-connmanctl enable ethernet
-
 exit 0
