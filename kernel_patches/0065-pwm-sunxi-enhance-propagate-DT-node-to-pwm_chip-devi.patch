@@ -1,0 +1,38 @@
+From 0772c03bcdfb1d32e5f2bde9c83ca996fc6e4703 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Tue, 14 Apr 2026 16:27:03 +0800
+Subject: [PATCH] pwm: sunxi-enhance: propagate DT node to pwm_chip device
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+pwmchip_alloc() creates a virtual chip device whose of_node is NULL.
+ops like sunxi_pwm_enable_single() call of_parse_phandle(chip->dev.of_node,
+"sunxi-pwms", ...) — which returned NULL, causing -ENODEV on every
+PWM enable attempt.
+
+Copy the platform device's of_node to the chip device after allocation
+so the DT lookups work correctly.
+
+Signed-off-by: Blue Cuenca <blue.cuenca@gmail.com>
+---
+ drivers/pwm/pwm-sunxi-enhance.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/pwm/pwm-sunxi-enhance.c b/drivers/pwm/pwm-sunxi-enhance.c
+index 45b0a4233..30e3d41a4 100644
+--- a/drivers/pwm/pwm-sunxi-enhance.c
++++ b/drivers/pwm/pwm-sunxi-enhance.c
+@@ -1002,6 +1002,9 @@ static int sunxi_pwm_probe(struct platform_device *pdev)
+         return PTR_ERR(chip);
+     pwm = pwmchip_get_drvdata(chip);
+ 
++    /* Propagate DT node so ops can call of_parse_phandle("sunxi-pwms") */
++    chip->dev.of_node = pdev->dev.of_node;
++
+     /* io map pwm base */
+     pwm->base = devm_platform_ioremap_resource(pdev, 0);
+     if (IS_ERR(pwm->base))
+-- 
+2.17.1
+
