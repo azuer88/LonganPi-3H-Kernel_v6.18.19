@@ -23,4 +23,8 @@ ExecStart=
 ExecStart=/sbin/wpa_supplicant -u -s -c /etc/wpa_supplicant/wpa_supplicant.conf -O "DIR=/run/wpa_supplicant GROUP=netdev"
 SYSD
 
+# --- Disable systemd-networkd-wait-online (we use NetworkManager-wait-online instead) ---
+mkdir -p "$ROOTFS/etc/systemd/system"
+ln -sf /dev/null "$ROOTFS/etc/systemd/system/systemd-networkd-wait-online.service"
+
 echo "$0 done."
