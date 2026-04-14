@@ -1,0 +1,56 @@
+From 4a13c2ea231555cdf971181d4811c5de19ff5900 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Tue, 14 Apr 2026 16:32:55 +0800
+Subject: [PATCH] aic_load_fw: fix FORTIFY_SOURCE false positive in
+ aicbt_patch_info_unpack
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The memcpy destination was &patch_info->adid_addrinf (a single uint32_t,
+4 bytes), but the copy size was info_len*8 bytes. FORTIFY_SOURCE fires a
+WARNING because it sees destination object size = 4 < copy size.
+
+This is a false positive: the intent is to populate all struct fields
+starting at adid_addrinf sequentially from firmware data, and the struct
+has enough space (8 fields × 4 bytes = 32 bytes).
+
+Fix by computing the destination as a runtime uint8_t* offset so
+FORTIFY_SOURCE resolves the object size to the full struct rather than
+the single field. Add an explicit bounds check and cap to protect against
+genuinely oversized firmware data.
+
+Signed-off-by: Blue Cuenca <blue.cuenca@gmail.com>
+---
+ .../wireless/aic8800/aic_load_fw/aicbluetooth.c   | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/aic8800/aic_load_fw/aicbluetooth.c b/drivers/net/wireless/aic8800/aic_load_fw/aicbluetooth.c
+index 184d85711..0fc19fd71 100644
+--- a/drivers/net/wireless/aic8800/aic_load_fw/aicbluetooth.c
++++ b/drivers/net/wireless/aic8800/aic_load_fw/aicbluetooth.c
+@@ -1227,7 +1227,20 @@ int aicbt_patch_info_unpack(struct aicbt_patch_info_t *patch_info, struct aicbt_
+         patch_info->info_len = head_t->len;
+         if(patch_info->info_len == 0)
+             return 0;
+-        memcpy(&patch_info->adid_addrinf, head_t->data, patch_info->info_len * sizeof(uint32_t) * 2);
++        /* head_t->data contains info_len (addr, val) uint32_t pairs that map
++         * sequentially onto the struct fields starting at adid_addrinf.
++         * Use a runtime-computed pointer so FORTIFY_SOURCE uses the whole
++         * struct size rather than the single adid_addrinf field size. */
++        {
++            size_t copy_size = patch_info->info_len * sizeof(uint32_t) * 2;
++            size_t max_size = sizeof(*patch_info) -
++                              offsetof(struct aicbt_patch_info_t, adid_addrinf);
++            uint8_t *dst = (uint8_t *)patch_info +
++                           offsetof(struct aicbt_patch_info_t, adid_addrinf);
++            if (WARN_ON(copy_size > max_size))
++                copy_size = max_size;
++            memcpy(dst, head_t->data, copy_size);
++        }
+     }
+     return 0;
+ }
+-- 
+2.17.1
+
