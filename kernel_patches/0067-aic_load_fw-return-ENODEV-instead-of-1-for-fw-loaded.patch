@@ -1,0 +1,40 @@
+From eb924cc03bb4859333034ec8611dafd346253197 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Tue, 14 Apr 2026 16:40:11 +0800
+Subject: [PATCH] aic_load_fw: return -ENODEV instead of -1 for fw-loaded
+ re-enumeration
+
+After firmware is loaded onto the AIC8800D80, the device re-enumerates
+as 8D81. aic_load_fw intentionally declines this second probe so
+aic8800_fdrv can claim it, but was returning -1 (raw). The driver core
+logs dev_err for any non-standard error code; -ENODEV demotes the
+message to dev_dbg, eliminating the spurious boot-time error.
+
+Signed-off-by: Blue Cuenca <blue.cuenca@gmail.com>
+---
+ drivers/net/wireless/aic8800/aic_load_fw/aicwf_usb.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/aic8800/aic_load_fw/aicwf_usb.c b/drivers/net/wireless/aic8800/aic_load_fw/aicwf_usb.c
+index c2136fe8a..d95559412 100644
+--- a/drivers/net/wireless/aic8800/aic_load_fw/aicwf_usb.c
++++ b/drivers/net/wireless/aic8800/aic_load_fw/aicwf_usb.c
+@@ -1592,10 +1592,12 @@ static int aicwf_usb_probe(struct usb_interface *intf, const struct usb_device_i
+ 		id->bInterfaceSubClass,
+ 		id->bInterfaceProtocol);
+ 
+-	if(fw_loaded == 1 && 
+-        (id->idProduct == USB_DEVICE_ID_AIC_8801 || 
++	/* Firmware already loaded; device re-enumerated as 8D81.
++	 * Decline silently so aic8800_fdrv can claim it. */
++	if(fw_loaded == 1 &&
++        (id->idProduct == USB_DEVICE_ID_AIC_8801 ||
+         id->idProduct == USB_DEVICE_ID_AIC_8800D81)){
+-		return -1;
++		return -ENODEV;
+ 	}
+ 
+     usb_dev = kzalloc(sizeof(struct aic_usb_dev), GFP_ATOMIC);
+-- 
+2.17.1
+
