@@ -542,9 +542,9 @@ Resolution:  1920×1080 fullscreen
 | loop | uniform=true | 95 |
 | **glmark2 Score** | | **131** |
 
-To run the benchmark yourself (requires a VT — run via `openvt` or directly on the console):
+To run the benchmark yourself:
 
 ```shell
 sudo apt install glmark2-drm
-sudo openvt -c 2 -s -w -- glmark2-drm
+glmark2-drm
 ```
