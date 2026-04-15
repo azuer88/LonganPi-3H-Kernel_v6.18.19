@@ -14,7 +14,7 @@ Based on [sipeed/LonganPi-3H-SDK](https://github.com/sipeed/LonganPi-3H-SDK).
 | CPU | ✅ Working | 4× Cortex-A53 @ up to 1416 MHz |
 | HDMI display | ✅ Working | DE33 driver; `video=HDMI-A-1:1280x720@60` in cmdline — needed if monitor is in power-save at boot, may not be required for all setups |
 | HDMI audio | ✅ Working | AHUB driver (`sun50i-ahub`); appears as `card 0: HDMI Audio` |
-| GPU (Mali-G31) | ✅ Working | Panfrost driver; `/dev/dri/renderD128`; 432 MHz; OpenGL ES 3.1; glmark2 score 206 @ 1920×1080 |
+| GPU (Mali-G31) | ✅ Working | Panfrost driver; `/dev/dri/renderD128`; 432 MHz; OpenGL ES 3.1; glmark2 score 131 @ 1920×1080 (full run; Mesa 22.3.6) |
 | VPU (Cedrus) | ✅ Working | H.264 / HEVC hardware decode; `/dev/video0` |
 | WiFi | ✅ Working | AIC8800D80 USB dongle (included on board) |
 | Bluetooth | ✅ Working | AIC8800 BT via USB (`hci0`) |
