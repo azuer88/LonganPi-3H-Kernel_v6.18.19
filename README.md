@@ -505,18 +505,46 @@ GL_VERSION:  OpenGL ES 3.1 Mesa 22.3.6
 Resolution:  1920×1080 fullscreen
 ```
 
-| Scene | FPS |
-|-------|-----|
-| build (no VBO) | 153 |
-| build (VBO) | 153 |
-| shading (gouraud) | 103 |
-| bump | 271 |
-| effect2d | 359 |
-| **glmark2 Score** | **206** |
+| Scene | Variant | FPS |
+|-------|---------|-----|
+| build | use-vbo=false | 153 |
+| build | use-vbo=true | 153 |
+| texture | nearest | 316 |
+| texture | linear | 315 |
+| texture | mipmap | 321 |
+| shading | gouraud | 103 |
+| shading | blinn-phong-inf | 103 |
+| shading | phong | 91 |
+| shading | cel | 86 |
+| bump | high-poly | 41 |
+| bump | normals | 222 |
+| bump | height | 210 |
+| effect2d | edge detect (3×3) | 76 |
+| effect2d | blur (5×5) | 27 |
+| pulsar | — | 297 |
+| desktop | blur | 35 |
+| desktop | shadow | 143 |
+| buffer | map | 55 |
+| buffer | subdata | 54 |
+| buffer | interleave+map | 62 |
+| ideas | — | 124 |
+| jellyfish | — | 68 |
+| terrain | — | 5 |
+| shadow | — | 38 |
+| refract | — | 8 |
+| conditionals | no steps | 236 |
+| conditionals | fragment-steps=5 | 121 |
+| conditionals | vertex-steps=5 | 238 |
+| function | low complexity | 163 |
+| function | medium complexity | 89 |
+| loop | no uniform | 162 |
+| loop | uniform=false | 162 |
+| loop | uniform=true | 95 |
+| **glmark2 Score** | | **131** |
 
-To run the benchmark yourself:
+To run the benchmark yourself (requires a VT — run via `openvt` or directly on the console):
 
 ```shell
 sudo apt install glmark2-drm
-glmark2-drm --size 1280x720
+sudo openvt -c 2 -s -w -- glmark2-drm
 ```
