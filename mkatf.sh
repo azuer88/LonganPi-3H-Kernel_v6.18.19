@@ -25,7 +25,7 @@ if [ ! -e build/arm-trusted-firmware ]
 then
 	git clone $URL build/arm-trusted-firmware --branch=${BRANCH}
 	cd build/arm-trusted-firmware
-	git checkout 5e52433dd6794aa5c2186a990cb7f4dfa6f2ef01
+	git checkout v2.14.0
 	cd ../../
 fi
 

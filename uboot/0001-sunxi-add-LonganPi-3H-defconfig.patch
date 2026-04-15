@@ -1,0 +1,61 @@
+From 56ab3a05cb39fd382ac563c204e19cbdb8057f74 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Thu, 16 Apr 2026 03:36:20 +0800
+Subject: [PATCH 1/4] sunxi: add LonganPi 3H defconfig
+
+H618 board with AXP313 PMIC, LPDDR4 DRAM, eMMC on slot 2, emac1/AC300
+internal PHY for Ethernet. Includes UMS fallback recovery on boot failure.
+
+Signed-off-by: Blue Cuenca <blue.cuenca@gmail.com>
+---
+ configs/longanpi_3h_defconfig | 38 +++++++++++++++++++++++++++++++++++
+ 1 file changed, 38 insertions(+)
+ create mode 100644 configs/longanpi_3h_defconfig
+
+diff --git a/configs/longanpi_3h_defconfig b/configs/longanpi_3h_defconfig
+new file mode 100644
+index 00000000..3e9fb3d4
+--- /dev/null
++++ b/configs/longanpi_3h_defconfig
+@@ -0,0 +1,38 @@
++CONFIG_ARM=y
++CONFIG_ARCH_SUNXI=y
++CONFIG_DEFAULT_DEVICE_TREE="allwinner/sun50i-h618-longanpi-3h"
++CONFIG_DRAM_CLK=792
++CONFIG_SPL=y
++CONFIG_DRAM_SUNXI_DX_ODT=0x07070707
++CONFIG_DRAM_SUNXI_DX_DRI=0x0e0e0e0e
++CONFIG_DRAM_SUNXI_CA_DRI=0x0e0e
++CONFIG_DRAM_SUNXI_ODT_EN=0xaaaaeeee
++CONFIG_DRAM_SUNXI_TPR6=0x44000000
++CONFIG_DRAM_SUNXI_TPR10=0x402f6663
++CONFIG_DRAM_SUNXI_TPR11=0x24242624
++CONFIG_DRAM_SUNXI_TPR12=0x0f0f100f
++CONFIG_MACH_SUN50I_H616=y
++CONFIG_SUNXI_DRAM_H616_LPDDR4=y
++CONFIG_R_I2C_ENABLE=y
++CONFIG_SPL_SPI_SUNXI=y
++# CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
++# CONFIG_EFI_LOADER is not set
++CONFIG_SPL_I2C=y
++CONFIG_SPL_SYS_I2C_LEGACY=y
++CONFIG_SYS_I2C_MVTWSI=y
++CONFIG_SYS_I2C_SLAVE=0x7f
++CONFIG_SYS_I2C_SPEED=400000
++CONFIG_MMC_SUNXI_SLOT_EXTRA=2
++CONFIG_SUN8I_EMAC=y
++CONFIG_AXP313_POWER=y
++CONFIG_SPI=y
++CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_OHCI_HCD=y
++CONFIG_USB_MUSB_GADGET=y
++CONFIG_BOOTCOMMAND="run distro_bootcmd; ums 0 mmc 1;"
++CONFIG_PREBOOT=""
++CONFIG_PHY_SUN4I_USB=y
++CONFIG_PHY_SUN50I_USB3=y
++CONFIG_USB_MUSB_SUNXI=y
++CONFIG_USB_FUNCTION_MASS_STORAGE=y
++CONFIG_CMD_USB_MASS_STORAGE=y
+-- 
+2.17.1
+

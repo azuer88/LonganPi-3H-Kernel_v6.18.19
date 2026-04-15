@@ -24,7 +24,7 @@ if [ ! -e build/uboot ]
 then
 	git clone $URL build/uboot --branch=${BRANCH}
 	cd build/uboot
-	git checkout da2e3196e4dc28298b58a018ace07f85eecd1652
+	git checkout v2026.04
 	find ../../uboot/ -name *.patch | sort | while read line
 	do
 		git am < $line

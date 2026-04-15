@@ -1,0 +1,298 @@
+From 017221760299d638c25e0f2878eb9c2ed8738a15 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Thu, 16 Apr 2026 03:04:31 +0800
+Subject: [PATCH 2/4] sunxi: H616: add emac1/AC300 internal EPHY support for
+ LonganPi 3H
+
+Add emac1 (RMII, reg 0x5030000) to sun50i-h616.dtsi with rmii-pins
+pinctrl. Wire it up in the longanpi-3h DTS with the AC300 internal PHY
+at MDIO address 16, phy-supply from reg_dldo1.
+
+Add H616 emac variant (syscon_offset 0x34) to sun8i_emac driver.
+Register emac1 pinmux function in pinctrl-sunxi.
+Initialize AC300 EPHY PWM clock in clock_init_safe for H616.
+Add AC300 PHY init sequence in genphy_config (H616 only); disable
+EMAC1 link LED to avoid conflict with PH2/PH3 pins.
+
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Signed-off-by: Blue Cuenca <blue.cuenca@gmail.com>
+---
+ arch/arm/mach-sunxi/clock_sun50i_h6.c         |   8 ++
+ drivers/net/phy/phy.c                         | 105 ++++++++++++++++++
+ drivers/net/sun8i_emac.c                      |   7 ++
+ drivers/pinctrl/sunxi/pinctrl-sunxi.c         |   1 +
+ .../src/arm64/allwinner/sun50i-h616.dtsi      |  27 +++++
+ .../allwinner/sun50i-h618-longanpi-3h.dts     |  19 ++++
+ 6 files changed, 167 insertions(+)
+
+diff --git a/arch/arm/mach-sunxi/clock_sun50i_h6.c b/arch/arm/mach-sunxi/clock_sun50i_h6.c
+index 80004f13..8aac1f7e 100644
+--- a/arch/arm/mach-sunxi/clock_sun50i_h6.c
++++ b/arch/arm/mach-sunxi/clock_sun50i_h6.c
+@@ -22,6 +22,14 @@ void clock_init_safe(void)
+ 		setbits_le32(prcm + CCU_PRCM_SYS_PWROFF_GATING, 0x200);
+ 	udelay(1);
+ 
++	if (IS_ENABLED(CONFIG_MACH_SUN50I_H616)) {
++		/* configure internal AC300 EPHY PWM clock */
++		writel(0x10001, (void *)0x030017ac);
++		writel(0x80004, (void *)0x0300a104);
++		writel(0x50,    (void *)0x0300a028);
++		writel(0x20,    (void *)0x0300a040);
++	}
++
+ 	if (IS_ENABLED(CONFIG_MACH_SUN50I_H616) ||
+ 	    IS_ENABLED(CONFIG_MACH_SUN55I_A523))
+ 		setbits_le32(prcm + CCU_PRCM_RES_CAL_CTRL, 2);
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index b58283fe..639d23c9 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -18,6 +18,7 @@
+ #include <phy.h>
+ #include <errno.h>
+ #include <asm/global_data.h>
++#include <asm/io.h>
+ #include <asm-generic/gpio.h>
+ #include <dm/device_compat.h>
+ #include <dm/of_extra.h>
+@@ -388,6 +389,72 @@ int genphy_parse_link(struct phy_device *phydev)
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_MACH_SUN50I_H616
++static void disable_intelligent_ieee(struct phy_device *phydev)
++{
++	unsigned int value;
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0100);	/* switch to page 1 */
++	value = phy_read(phydev, MDIO_DEVAD_NONE, 0x17);
++	value &= ~(1 << 3);					/* reg 0x17 bit 3, set 0 to disable IEEE */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x17, value);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0000);	/* switch to page 0 */
++}
++
++static void disable_802_3az_ieee(struct phy_device *phydev)
++{
++	unsigned int value;
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x7);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xe, 0x3c);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x1 << 14 | 0x7);
++	value = phy_read(phydev, MDIO_DEVAD_NONE, 0xe);
++	value &= ~(0x1 << 1);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x7);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xe, 0x3c);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x1 << 14 | 0x7);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xe, value);
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0200);	/* switch to page 2 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x0000);
++}
++
++static void ephy_config_default(struct phy_device *phydev)
++{
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0100);	/* Switch to Page 1 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x12, 0x4824);	/* Disable APS */
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0200);	/* Switch to Page 2 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x0000);	/* PHYAFE TRX optimization */
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0600);	/* Switch to Page 6 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x14, 0x708b);	/* PHYAFE TX optimization */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x13, 0xF000);	/* PHYAFE RX optimization */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x15, 0x1530);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0800);	/* Switch to Page 8 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x00bc);	/* PHYAFE TRX optimization */
++}
++
++static void ephy_config_fixed(struct phy_device *phydev)
++{
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0100);	/* Switch to Page 1 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x12, 0x4824);	/* Disable APS */
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0200);	/* Switch to Page 2 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x0000);	/* PHYAFE TRX optimization */
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0600);	/* Switch to Page 6 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x14, 0x7809);	/* PHYAFE TX optimization */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x13, 0xf000);	/* PHYAFE RX optimization */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x10, 0x5523);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x15, 0x3533);
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0800);	/* Switch to Page 8 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x0844);	/* disable auto offset */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x00bc);	/* PHYAFE TRX optimization */
++}
++#endif /* CONFIG_MACH_SUN50I_H616 */
++
+ int genphy_config(struct phy_device *phydev)
+ {
+ 	int val;
+@@ -436,6 +503,44 @@ int genphy_config(struct phy_device *phydev)
+ 
+ 	genphy_config_aneg(phydev);
+ 
++#ifdef CONFIG_MACH_SUN50I_H616
++	val = readl(0x300622c);
++	if (val & (1 << 8)) {
++		phy_write(phydev, MDIO_DEVAD_NONE, 0, 0x1f83);
++		phy_write(phydev, MDIO_DEVAD_NONE, 0, 0x1fb7);
++		phy_write(phydev, MDIO_DEVAD_NONE, 5, 0xa81f);
++		phy_write(phydev, MDIO_DEVAD_NONE, 6, 0);
++		udelay(500000);
++		val = phy_read(phydev, MDIO_DEVAD_NONE, 6);
++		val &= ~(0x0f << 12);
++		val |= (0x0f & (0x03 + (0xffff & val))) << 12;
++		phy_write(phydev, MDIO_DEVAD_NONE, 6, val);
++
++		/* disable EMAC1 link LED to avoid conflict with PH2/PH3 pins */
++		val = phy_read(phydev, MDIO_DEVAD_NONE, 0x06);
++		val &= ~(1 << 1);
++		phy_write(phydev, MDIO_DEVAD_NONE, 0x06, val);
++
++		val = phy_read(phydev, MDIO_DEVAD_NONE, 0x05);
++		val &= ~(1 << 2);
++		phy_write(phydev, MDIO_DEVAD_NONE, 0x05, val);
++
++		if ((0xffff & val) & 0x200) {
++			printf("using AC300 emac1 ephy fixed config ...\n");
++			ephy_config_fixed(phydev);
++		} else {
++			printf("using AC300 emac1 ephy default config ...\n");
++			ephy_config_default(phydev);
++		}
++		disable_intelligent_ieee(phydev);
++		disable_802_3az_ieee(phydev);
++		phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0000);
++		val = phy_read(phydev, MDIO_DEVAD_NONE, 6);
++		val |= (0x1 << 11);
++		phy_write(phydev, MDIO_DEVAD_NONE, 6, val);
++	}
++#endif /* CONFIG_MACH_SUN50I_H616 */
++
+ 	return 0;
+ }
+ 
+diff --git a/drivers/net/sun8i_emac.c b/drivers/net/sun8i_emac.c
+index 41c52f56..97ad6f68 100644
+--- a/drivers/net/sun8i_emac.c
++++ b/drivers/net/sun8i_emac.c
+@@ -900,6 +900,11 @@ static const struct emac_variant emac_variant_h6 = {
+ 	.support_rmii		= true,
+ };
+ 
++static const struct emac_variant emac_variant_h616 = {
++	.syscon_offset		= 0x34,
++	.support_rmii		= true,
++};
++
+ static const struct udevice_id sun8i_emac_eth_ids[] = {
+ 	{ .compatible = "allwinner,sun8i-a83t-emac",
+ 	  .data = (ulong)&emac_variant_a83t },
+@@ -913,6 +918,8 @@ static const struct udevice_id sun8i_emac_eth_ids[] = {
+ 	  .data = (ulong)&emac_variant_a64 },
+ 	{ .compatible = "allwinner,sun50i-h6-emac",
+ 	  .data = (ulong)&emac_variant_h6 },
++	{ .compatible = "allwinner,sun50i-h616-emac",
++	  .data = (ulong)&emac_variant_h616 },
+ 	{ }
+ };
+ 
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi.c b/drivers/pinctrl/sunxi/pinctrl-sunxi.c
+index fd357ab0..b025666e 100644
+--- a/drivers/pinctrl/sunxi/pinctrl-sunxi.c
++++ b/drivers/pinctrl/sunxi/pinctrl-sunxi.c
+@@ -737,6 +737,7 @@ static const struct sunxi_pinctrl_desc __maybe_unused sun50i_h6_r_pinctrl_desc =
+ 
+ static const struct sunxi_pinctrl_function sun50i_h616_pinctrl_functions[] = {
+ 	{ "emac0",	2 },	/* PI0-PI16 */
++	{ "emac1",	2 },	/* PA0-PA9 */
+ 	{ "gpio_in",	0 },
+ 	{ "gpio_out",	1 },
+ 	{ "mmc0",	2 },	/* PF0-PF5 */
+diff --git a/dts/upstream/src/arm64/allwinner/sun50i-h616.dtsi b/dts/upstream/src/arm64/allwinner/sun50i-h616.dtsi
+index ceedae9e..0b721dc2 100644
+--- a/dts/upstream/src/arm64/allwinner/sun50i-h616.dtsi
++++ b/dts/upstream/src/arm64/allwinner/sun50i-h616.dtsi
+@@ -263,6 +263,13 @@
+ 				drive-strength = <40>;
+ 			};
+ 
++			rmii_pins: rmii-pins {
++				pins = "PA0", "PA1", "PA2", "PA3", "PA4",
++				       "PA5", "PA6", "PA7", "PA8", "PA9";
++				function = "emac1";
++				drive-strength = <40>;
++			};
++
+ 			i2c0_pins: i2c0-pins {
+ 				pins = "PI5", "PI6";
+ 				function = "i2c0";
+@@ -645,6 +652,26 @@
+ 			};
+ 		};
+ 
++		emac1: ethernet@5030000 {
++			compatible = "allwinner,sun50i-h616-emac1",
++				     "allwinner,sun50i-h616-emac";
++			reg = <0x05030000 0x10000>;
++			interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
++			interrupt-names = "macirq";
++			clocks = <&ccu CLK_BUS_EMAC1>;
++			clock-names = "stmmaceth";
++			resets = <&ccu RST_BUS_EMAC1>;
++			reset-names = "stmmaceth";
++			syscon = <&syscon>;
++			status = "disabled";
++
++			mdio1: mdio {
++				compatible = "snps,dwmac-mdio";
++				#address-cells = <1>;
++				#size-cells = <0>;
++			};
++		};
++
+ 		gpadc: adc@5070000 {
+ 			compatible = "allwinner,sun50i-h616-gpadc",
+ 				     "allwinner,sun20i-d1-gpadc";
+diff --git a/dts/upstream/src/arm64/allwinner/sun50i-h618-longanpi-3h.dts b/dts/upstream/src/arm64/allwinner/sun50i-h618-longanpi-3h.dts
+index 16c68177..374492b1 100644
+--- a/dts/upstream/src/arm64/allwinner/sun50i-h618-longanpi-3h.dts
++++ b/dts/upstream/src/arm64/allwinner/sun50i-h618-longanpi-3h.dts
+@@ -17,6 +17,7 @@
+ 
+ 	aliases {
+ 		ethernet0 = &emac0;
++		ethernet1 = &emac1;
+ 		serial0 = &uart0;
+ 	};
+ 
+@@ -110,6 +111,24 @@
+ 	};
+ };
+ 
++&emac1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&rmii_pins>;
++	phy-mode = "rmii";
++	phy-handle = <&ac300_ephy>;
++	phy-supply = <&reg_dldo1>;
++	allwinner,rx-delay-ps = <3100>;
++	allwinner,tx-delay-ps = <700>;
++	status = "okay";
++};
++
++&mdio1 {
++	ac300_ephy: ethernet-phy@16 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <16>;
++	};
++};
++
+ &mmc0 {
+ 	disable-wp;
+ 	bus-width = <4>;
+-- 
+2.17.1
+

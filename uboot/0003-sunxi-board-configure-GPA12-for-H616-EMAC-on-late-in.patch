@@ -1,0 +1,32 @@
+From c4e2648e523d1c59444dd56f87c4fda2985a3c04 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Thu, 16 Apr 2026 03:04:31 +0800
+Subject: [PATCH 3/4] sunxi: board: configure GPA12 for H616 EMAC on late init
+
+Set GPA12 to function 2 on H616 boards with EMAC enabled to fix AC300
+EPHY initialization failure.
+
+From: 916BGAI <zhangjian@sipeed.com>
+Signed-off-by: Blue Cuenca <blue.cuenca@gmail.com>
+---
+ board/sunxi/board.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/board/sunxi/board.c b/board/sunxi/board.c
+index 954a8715..7a660ff2 100644
+--- a/board/sunxi/board.c
++++ b/board/sunxi/board.c
+@@ -864,6 +864,10 @@ int board_late_init(void)
+ 	usb_ether_init();
+ #endif
+ 
++#if defined(CONFIG_MACH_SUN50I_H616) && defined(CONFIG_SUN8I_EMAC)
++	sunxi_gpio_set_cfgpin(SUNXI_GPA(12), 2);
++#endif
++
+ 	return 0;
+ }
+ 
+-- 
+2.17.1
+

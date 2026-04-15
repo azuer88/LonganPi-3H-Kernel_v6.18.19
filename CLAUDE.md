@@ -142,10 +142,15 @@ Notable patches:
 - `0067` — aic_load_fw: return `-ENODEV` for post-firmware 8D81 re-enumeration (silences boot error log)
 
 ### U-Boot source (`build/uboot`)
-- Cloned and patched by `mkuboot.sh` on first run (base: `da2e3196e`)
-- 13 patches in `uboot/0001-*.patch` … `uboot/0013-*.patch` (upstream sipeed + local fixes)
+- Cloned and patched by `mkuboot.sh` on first run (base: `v2026.04`)
+- 4 patches in `uboot/0001-*.patch` … `uboot/0004-*.patch` (local additions not yet upstream)
+  - `0001` — longanpi_3h_defconfig (minimal format; `EFI_LOADER` disabled to avoid gnutls build dep; `TPR6=0x44000000` required for mainline LPDDR4 PHY init)
+  - `0002` — emac1/AC300 internal EPHY support (DTS, phy.c, sun8i_emac.c, pinctrl)
+  - `0003` — GPA12 pin config in `board_late_init()` for EMAC
+  - `0004` — eMMC hardware reset fix (csdc/dbgc/timeout registers in `sunxi_mmc_reset()`)
 - Must be built in Docker (same `lpi3h-build` image as kernel)
-- Output: `build/u-boot-sunxi-with-spl.bin` — flash raw to SD: `dd if=... of=/dev/mmcblkX bs=1024 seek=8`
+- Output: `build/u-boot-sunxi-with-spl.bin` — flash raw to SD: `dd if=... of=/dev/mmcblk1 bs=1024 seek=8`
+- Working branch for patch development: `lpi3h-rebase` at `/tmp/u-boot-mainline`
 
 ### Board-specific notes (lpi3h-f1a0)
 - Serial console: `/dev/ttyUSB0` at 115200 baud

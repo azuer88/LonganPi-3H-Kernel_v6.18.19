@@ -1,0 +1,64 @@
+From 8232d30f93997dcc33ebc5fd94bebee4a90e3915 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Thu, 16 Apr 2026 03:11:00 +0800
+Subject: [PATCH 4/4] sunxi: mmc: fix H616 eMMC boot failure with proper
+ hardware reset
+
+Rename res0 to csdc (CRC status detect register at 0x54).
+Extend sunxi_mmc_reset() for H6/NCAT2 to set timeout, csdc, and dbgc
+registers required for reliable H616 eMMC operation.
+Add dsb() after zeroing base address in mctl_mem_matches_base() to
+prevent speculative reads from racing the write.
+
+From: 916BGAI <zhangjian@sipeed.com>
+Signed-off-by: Blue Cuenca <blue.cuenca@gmail.com>
+---
+ arch/arm/mach-sunxi/dram_helpers.c | 1 +
+ drivers/mmc/sunxi_mmc.c            | 5 +++++
+ drivers/mmc/sunxi_mmc.h            | 2 +-
+ 3 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/mach-sunxi/dram_helpers.c b/arch/arm/mach-sunxi/dram_helpers.c
+index 376b7d14..a9c4bda4 100644
+--- a/arch/arm/mach-sunxi/dram_helpers.c
++++ b/arch/arm/mach-sunxi/dram_helpers.c
+@@ -43,6 +43,7 @@ bool mctl_mem_matches_base(u32 offset, ulong base)
+ 
+ 	/* Try to write different values to RAM at two addresses */
+ 	writel(0, base);
++	dsb();
+ 	writel(0xaa55aa55, base + offset);
+ 	dsb();
+ 	/* Check if the same value is actually observed when reading back */
+diff --git a/drivers/mmc/sunxi_mmc.c b/drivers/mmc/sunxi_mmc.c
+index e28c81af..1ecbb04d 100644
+--- a/drivers/mmc/sunxi_mmc.c
++++ b/drivers/mmc/sunxi_mmc.c
+@@ -483,6 +483,11 @@ static void sunxi_mmc_reset(void *regs)
+ 		writel(SUNXI_MMC_THLDC_READ_THLD(512) |
+ 		       SUNXI_MMC_THLDC_WRITE_EN |
+ 		       SUNXI_MMC_THLDC_READ_EN, regs + SUNXI_MMC_THLDC);
++
++		writel((0xffffffU << 8) | 0xff,
++		       &((struct sunxi_mmc *)regs)->timeout);
++		writel(3, &((struct sunxi_mmc *)regs)->csdc);
++		writel(0xdeb, &((struct sunxi_mmc *)regs)->dbgc);
+ 	}
+ }
+ 
+diff --git a/drivers/mmc/sunxi_mmc.h b/drivers/mmc/sunxi_mmc.h
+index 71865160..64dbcbd2 100644
+--- a/drivers/mmc/sunxi_mmc.h
++++ b/drivers/mmc/sunxi_mmc.h
+@@ -34,7 +34,7 @@ struct sunxi_mmc {
+ 	u32 cbcr;		/* 0x48 CIU byte count */
+ 	u32 bbcr;		/* 0x4c BIU byte count */
+ 	u32 dbgc;		/* 0x50 debug enable */
+-	u32 res0;		/* 0x54 reserved */
++	u32 csdc;		/* 0x54 crc status detect */
+ 	u32 a12a;		/* 0x58 Auto command 12 argument */
+ 	u32 ntsr;		/* 0x5c	New timing set register */
+ 	u32 res1[6];
+-- 
+2.17.1
+

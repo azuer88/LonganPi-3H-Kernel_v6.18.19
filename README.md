@@ -127,7 +127,7 @@ mksdimg.sh          → build/images/sdcard-MACID[-CODENAME].img.xz
 mkatf.sh
 ```
 
-Clones ARM Trusted Firmware at a pinned commit, builds `bl31.bin` for the
+Clones ARM Trusted Firmware at tag `v2.14.0`, builds `bl31.bin` for the
 `sun50i_h616` platform, and copies it to `build/bl31.bin`.
 
 Controlled by env vars: `URL`, `BRANCH`, `CROSS_COMPILE`.
@@ -142,7 +142,7 @@ Output: `build/bl31.bin`
 run_docker.sh mkuboot.sh
 ```
 
-Clones U-Boot at a pinned commit, applies patches from `uboot/*.patch` in
+Clones U-Boot at tag `v2026.04`, applies 4 patches from `uboot/*.patch` in
 sorted order, builds with `longanpi_3h_defconfig` using `bl31.bin`, and
 copies the result to `build/u-boot-sunxi-with-spl.bin`.
 
