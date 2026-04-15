@@ -24,7 +24,7 @@ Based on [sipeed/LonganPi-3H-SDK](https://github.com/sipeed/LonganPi-3H-SDK).
 | I2C | ✅ Working | `/dev/i2c-0..2` |
 | SPI | ✅ Working | `spi_sun6i` on SPI1 (PH5–PH8 header pins); `/dev/spidev1.0` via `rohm,dh2228fv` spidev node |
 | Serial console | ✅ Working | `/dev/ttyS0` at 115200 baud |
-| USB OTG | ⚠️ Partial | Controller present (`musb-hdrc`); peripheral mode configured; not tested |
+| USB OTG | ✅ Working | `musb-hdrc`; peripheral mode; ACM serial (`/dev/ttyGS0` ↔ host `/dev/ttyACM0`) and RNDIS (USB Ethernet) tested |
 | USB serial (CH340/CH341) | ✅ Working | `/dev/ttyUSB*`; `CONFIG_USB_SERIAL_CH341=m` |
 | PWM / fan | ✅ Working | PWM driver patched in |
 
