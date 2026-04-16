@@ -24,8 +24,9 @@ printf "\x${SAVED_SIG:0:2}\x${SAVED_SIG:2:2}\x${SAVED_SIG:4:2}\x${SAVED_SIG:6:2}
 
 resize2fs "$ROOT_PART"
 
-# dont use buggy systemd-resolved
-echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+# set file capabilities (postinst scripts may not have run correctly during image build)
+setcap cap_net_raw=ep /usr/bin/ping
+setcap cap_dac_override,cap_sys_admin,cap_net_admin=ep /bin/ip
 
 # generate locale data
 # echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen
