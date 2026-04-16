@@ -1,0 +1,51 @@
+From ca17ddb1b167fc9ebfd4923e63dc58fe50f2e83b Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Fri, 17 Apr 2026 03:06:23 +0800
+Subject: [PATCH] defconfig: enable xt_MASQUERADE, xt_NAT for Docker; fix BT
+ module config
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+CONFIG_NETFILTER_XT_TARGET_MASQUERADE=m and CONFIG_NETFILTER_XT_NAT=m
+are needed for Docker networking (NAT/MASQUERADE via iptables-nft).
+CONFIG_IP_NF_TARGET_MASQUERADE was already set but it depends on
+IP_NF_IPTABLES_LEGACY which is not enabled; xt_MASQUERADE.ko was
+therefore never built. Adding the options directly (they only depend
+on NF_NAT=m which is already set) fixes Docker daemon startup.
+
+Also set BT_HCIBTUSB=m (was y) and disable BT_AICBTUSB (=m → not set).
+
+Signed-off-by: Blue Cuenca <blue.cuenca@gmail.com>
+---
+ arch/arm64/configs/longanpi_3h_defconfig | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
+index bab674109..167004c64 100644
+--- a/arch/arm64/configs/longanpi_3h_defconfig
++++ b/arch/arm64/configs/longanpi_3h_defconfig
+@@ -358,6 +358,8 @@ CONFIG_IP_NF_TARGET_REJECT=m
+ CONFIG_IP_NF_TARGET_SYNPROXY=m
+ CONFIG_IP_NF_NAT=m
+ CONFIG_IP_NF_TARGET_MASQUERADE=m
++CONFIG_NETFILTER_XT_TARGET_MASQUERADE=m
++CONFIG_NETFILTER_XT_NAT=m
+ CONFIG_IP_NF_TARGET_NETMAP=m
+ CONFIG_IP_NF_TARGET_REDIRECT=m
+ CONFIG_IP_NF_MANGLE=m
+@@ -468,9 +470,9 @@ CONFIG_BT_HIDP=y
+ CONFIG_BT_HS=y
+ CONFIG_BT_MSFTEXT=y
+ CONFIG_BT_AOSPEXT=y
+-CONFIG_BT_HCIBTUSB=y
++CONFIG_BT_HCIBTUSB=m
+ CONFIG_BT_HCIBTUSB_MTK=y
+-CONFIG_BT_AICBTUSB=m
++# CONFIG_BT_AICBTUSB is not set
+ CONFIG_BT_HCIBCM203X=y
+ CONFIG_BT_HCIBPA10X=y
+ CONFIG_BT_HCIBFUSB=y
+-- 
+2.17.1
+
