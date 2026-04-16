@@ -27,4 +27,14 @@ SYSD
 mkdir -p "$ROOTFS/etc/systemd/system"
 ln -sf /dev/null "$ROOTFS/etc/systemd/system/systemd-networkd-wait-online.service"
 
+# --- ping: set cap_net_raw+ep (iputils-ping postinst skipped when using dpkg-deb --extract) ---
+if [ -x "$ROOTFS/usr/bin/ping" ]; then
+    setcap cap_net_raw+ep "$ROOTFS/usr/bin/ping"
+fi
+
+# --- ip: set caps for ip vrf exec by non-root (iproute2 postinst debconf defaults to false in non-interactive builds) ---
+if [ -x "$ROOTFS/bin/ip" ]; then
+    setcap cap_dac_override,cap_sys_admin,cap_net_admin+ep "$ROOTFS/bin/ip"
+fi
+
 echo "$0 done."
