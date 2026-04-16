@@ -1,0 +1,68 @@
+From 61391062ffe2fca50adfe515277ec1158ac47f73 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Fri, 17 Apr 2026 06:10:07 +0800
+Subject: [PATCH] aic8800_fdrv: rate-limit rxq overflow log; increase
+ MAX_RXQLEN to 4096
+
+The rxq overflow pr_err was firing hundreds of times per minute during
+heavy WiFi traffic (e.g. pip downloads), creating a printk storm that
+stole CPU from the RX thread and worsened the overflow in a feedback
+loop.  Switch all three overflow sites in aicwf_usb.c to
+pr_err_ratelimited (max 10 msgs/5s).
+
+Also increase MAX_RXQLEN from 2000 to 4096 to better absorb bursts
+before dropping frames.
+
+Signed-off-by: Blue Cuenca <blue.cuenca@gmail.com>
+---
+ drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_txrxif.h | 2 +-
+ drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_usb.c    | 6 +++---
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_txrxif.h b/drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_txrxif.h
+index 552398806..799e995c0 100644
+--- a/drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_txrxif.h
++++ b/drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_txrxif.h
+@@ -32,7 +32,7 @@
+ 
+ #define RX_HWHRD_LEN                60 //58->60 word allined
+ #define CCMP_OR_WEP_INFO            8
+-#define MAX_RXQLEN                  2000
++#define MAX_RXQLEN                  4096
+ #define RX_ALIGNMENT                4
+ 
+ #define DEBUG_ERROR_LEVEL           0
+diff --git a/drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_usb.c b/drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_usb.c
+index 9d881140d..7d00e2c90 100644
+--- a/drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_usb.c
++++ b/drivers/net/wireless/aic8800/aic8800_fdrv/aicwf_usb.c
+@@ -320,7 +320,7 @@ static void aicwf_usb_rx_complete(struct urb *urb)
+         
+         if(!aicwf_rxbuff_enqueue(usb_dev->dev, &rx_priv->rxq, rx_buff)){
+             spin_unlock_irqrestore(&rx_priv->rxqlock, flags);
+-            usb_err("rx_priv->rxq is over flow!!!\n");
++            pr_err_ratelimited("usb_err:<%s,%d>: rx_priv->rxq is over flow!!!\n", __func__, __LINE__);
+             aicwf_prealloc_rxbuff_free(rx_buff, &rx_priv->rxbuff_lock);
+             aicwf_usb_rx_buf_put(usb_dev, usb_buf);
+             aicwf_usb_rx_submit_all_urb_(usb_dev);
+@@ -414,7 +414,7 @@ static void aicwf_usb_rx_complete(struct urb *urb)
+         }
+         if(!aicwf_rxframe_enqueue(usb_dev->dev, &rx_priv->rxq, skb)){
+             spin_unlock_irqrestore(&rx_priv->rxqlock, flags);
+-            usb_err("rx_priv->rxq is over flow!!!\n");
++            pr_err_ratelimited("usb_err:<%s,%d>: rx_priv->rxq is over flow!!!\n", __func__, __LINE__);
+             aicwf_dev_skb_free(skb);
+             aicwf_usb_rx_buf_put(usb_dev, usb_buf);
+             aicwf_usb_rx_submit_all_urb_(usb_dev);
+@@ -484,7 +484,7 @@ static void aicwf_usb_msg_rx_complete(struct urb *urb)
+         spin_lock_irqsave(&rx_priv->msg_rxqlock, flags);
+         if(!aicwf_rxframe_enqueue(usb_dev->dev, &rx_priv->msg_rxq, skb)){
+             spin_unlock_irqrestore(&rx_priv->msg_rxqlock, flags);
+-            usb_err("rx_priv->rxq is over flow!!!\n");
++            pr_err_ratelimited("usb_err:<%s,%d>: rx_priv->rxq is over flow!!!\n", __func__, __LINE__);
+             aicwf_dev_skb_free(skb);
+             return;
+         }
+-- 
+2.17.1
+
