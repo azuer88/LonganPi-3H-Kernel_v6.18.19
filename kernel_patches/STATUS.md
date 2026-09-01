@@ -254,7 +254,174 @@ Installed on lpi3h-f1a0 (2026-03-29), verified working:
 - mpv --vo=gpu with Panfrost renders 1280x720 H264 @ 30fps in real time
 - kmscube confirms OpenGL ES 3.1 / Mali-G31 (Panfrost) pipeline
 
-## AIC8800D80 Bluetooth — investigation result (2026-04-15)
+## Cedrus VA-API hardware video decode — investigation result (2026-09-01)
+
+**Conclusion: not viable with current upstream state. Software decode only.**
+
+The kernel-side Cedrus V4L2 M2M driver (patch 0050) works and probes correctly
+(`/dev/video0`), but no working userspace VA-API path exists to reach it:
+
+- Debian packages nothing named `v4l2-request`/`libva-v4l2-request`/`cedrus` in
+  any suite — confirmed via `packages.debian.org` and the board's apt cache.
+- `bootlin/libva-v4l2-request` (the reference VA-API driver for this API)
+  bundles private draft copies of the H.264/HEVC/MPEG2 stateless-codec control
+  structs (`include/h264-ctrls.h` etc.), written before those structs were
+  finalized upstream. Building against a modern kernel's real
+  `linux/v4l2-controls.h` (which now has the finalized structs) fails outright
+  — duplicate struct definitions. Worse, it's not just a naming collision: the
+  kernel's `struct v4l2_ctrl_h264_slice_params` gained a `start_byte_offset`
+  field the vendored draft lacks, i.e. a genuine ABI mismatch, confirmed via
+  upstream issue #43 and PR #38 (bootlin/libva-v4l2-request). The project has
+  seen no real maintenance since ~2021-2022.
+- PR #38 is the most complete community fix attempt (open/unmerged as of
+  2024). It only handles H.264 (hardcodes `V4L2_PIX_FMT_H264_SLICE`), and its
+  own testers report **kernel crashes during mpv playback**, not just build
+  issues.
+- `/extra/LPI3H/orangepi-build` (checked at user's request) has `libcedrus` /
+  `libvdpau-sunxi` packaging, but it's gated to
+  `LINUXFAMILY == sun8i && BRANCH == legacy` — the old H3/A20/A64-era chips on
+  Armbian's legacy out-of-tree `cedrus.ko`, unrelated to H616/H618's mainline
+  V4L2 M2M driver. No H616/H618-specific VA-API packaging exists there either.
+
+### Recommendation
+Don't pursue hardware VPU decode via VA-API right now — no one (Debian,
+bootlin upstream, orangepi-build) has a working build against a kernel this
+recent. Software decode + GPU-accelerated scaling/rendering (`mpv --vo=gpu
+--gpu-context=drm --drm-device=/dev/dri/card0`, see `docs/mpv_howto.md`) is
+the supported path; it handles 720p-class content comfortably. Revisit only
+if bootlin's driver sees real upstream maintenance, or a different userspace
+VA-API/V4L2-request implementation appears.
+
+### What was tried
+1. `bootlin/libva-v4l2-request` — `mklibva.sh` cross-compile script (Meson,
+   aarch64 cross-file, packaged as `.deb` for the `overlay`-style install
+   pattern) hit the struct-conflict build failure above and was abandoned
+   before it even compiled.
+2. `mxsrc/libva-v4l2` (2026-09-01, on `lpi3h-f1a0`) — a better-engineered,
+   actively-maintained, driver-agnostic alternative targeting the generic
+   Stateless V4L2-M2M API (no vendored draft headers — includes the real
+   `linux/v4l2-controls.h` directly). Cross-compiled and installed cleanly
+   (`v4l2_drv_video.so`), and `vainfo` confirmed it loads via VA-API and
+   correctly enumerates H.264/MPEG2/VP8 `VAEntrypointVLD` profiles — real
+   progress over attempt 1. But actual decode crashes immediately, even via
+   direct `ffmpeg -hwaccel vaapi` (bypassing mpv's GPU-interop layer
+   entirely, which separately also failed — see below):
+   ```
+   libva: Unable to queue buffer: Invalid argument
+   Failed to end picture decode issue: 1 (operation failed)
+   hardware accelerator failed to decode picture
+   Failed to begin picture decode issue: 16 (surface is in use)
+   terminate called after throwing an instance of 'std::out_of_range'
+     what():  map::at
+   ```
+   Upstream's own README discloses it's "tested using Intel's vaapi-fits on
+   an RK3399" (hantro/rockchip) — Cedrus is unverified territory for this
+   driver, and its V4L2 buffer/surface-queueing logic evidently doesn't
+   match Cedrus's semantics. Separately, `mpv --hwdec=vaapi` also failed
+   before even reaching decode (`Could not find a path to render node` —
+   this SoC has display (sun4i-drm, card0) and GPU (Panfrost, card1/
+   renderD128) on separate DRM devices, and mpv 0.35.1's hwdec-interop
+   render-node auto-detection assumes a single combined device — a known
+   class of issue on split-GPU ARM SBCs), but this is moot since the
+   underlying decode crashes regardless of which application drives it.
+
+Both attempts uninstalled/removed; `docker/Dockerfile` keeps the
+`meson`/`ninja-build`/`pkg-config`/`libva-dev:arm64`/`libdrm-dev:arm64`/
+`libudev-dev:arm64` build deps added along the way, since they're harmless
+and useful if this is revisited.
+
+---
+
+## Cedrus hardware decode via apt.undo.it (v4l2request ffmpeg patches) — in progress, paused (2026-09-01)
+
+**Status: real hardware decode confirmed working. Display path works. Colors
+wrong — paused mid-investigation, not a dead end like the VA-API attempts
+above.**
+
+Unlike the VA-API driver attempts (bootlin/libva-v4l2-request,
+mxsrc/libva-v4l2 — both genuinely dead ends, see below), this approach uses
+FFmpeg's own native `v4l2request`/`v4l2drmprime` hwaccel patches (from the
+LibreELEC/Kodi community), distributed as prebuilt `.deb`s replacing Debian's
+stock `ffmpeg`/`libav*` packages via a third-party repo:
+`http://apt.undo.it:7242` (see
+https://forum.armbian.com/topic/32449-repository-for-v4l2request-hardware-video-decoding-rockchip-allwinner/).
+Confirmed on that forum: H616/H618 (this SoC) works "flawlessly" with H264
+hwdec on an Orange Pi Zero 3 — same driver stack, different board.
+
+### What works (verified on lpi3h-f1a0)
+- Repo/key added, packages pinned+installed explicitly (repo versions are
+  numerically *older* than stock Debian, so plain `apt install` won't pick
+  them up — needs explicit `apt install --allow-downgrades pkg=version` for
+  `ffmpeg` + all `libav*`/`libswscale6`/`libswresample4`/`libpostproc56`).
+  Installed: `7:5.1.8-0+deb12u1-v4l2request1`.
+- `ffmpeg -hwaccels` lists `drm` (this patch set's name for the
+  v4l2request/drmprime path). Build config confirms
+  `--enable-v4l2-request --enable-v4l2-m2m`.
+- Direct decode test (`ffmpeg -hwaccel drm -hwaccel_output_format drm_prime`)
+  decodes cleanly: 1500 frames / 62s of video in 5.5s wall time, ~315fps,
+  13x realtime, only 1.9s CPU user time, zero crashes. Real hardware decode,
+  a massive contrast to every software-decode/VA-API-driver attempt so far.
+- Display: `mpv --vo=gpu --gpu-context=drm --drm-device=/dev/dri/card0`
+  (same as `docs/mpv_howto.md`) with `/etc/mpv/mpv.conf`:
+  ```
+  hwdec=drm
+  drm-drmprime-video-plane=overlay
+  drm-draw-plane=primary
+  ```
+  (NOTE: this is the *opposite* of the tutorial's own suggested
+  `mpv.conf` — its default `primary`-for-video/`overlay`-for-draw causes
+  `[vo/gpu] Failed to commit atomic request (-22)` on this board's
+  `sun4i-drm`, i.e. blank/stuck screen. Swapping to
+  `drm-drmprime-video-plane=overlay` + `drm-draw-plane=primary` — which is
+  actually mpv's own *default* when no `mpv.conf` override is present —
+  fixes the atomic-commit failure and gets a picture on screen.)
+
+### Known issue: colors wrong
+Picture is structurally correct (not garbled/scattered) but color is off.
+Checked and ruled out:
+- DRM plane `COLOR_ENCODING`/`COLOR_RANGE` properties (via `modetest -p` on
+  plane 33) are already correct: BT.709 / limited range, matching the
+  source video's actual metadata. Not a plane-property mismatch.
+- No `--drm-format`-equivalent option exists in mpv for the video
+  (drmprime) plane's chroma fourcc — only `--drm-format` for the RGB
+  draw/OSD plane. Can't test an NV12↔NV21 reinterpretation without
+  patching the `ffmpeg` v4l2request source itself.
+- Dropping `drm-drmprime-video-plane`/`drm-draw-plane` overrides entirely
+  (falling back to mpv's default non-overlay GL-texture/EGL-dmabuf import,
+  i.e. `[vo/gpu/drmprime] using EGL dmabuf interop` instead of
+  `drmprime-overlay`) produces a **blank screen**, not just wrong colors —
+  worse than the overlay path, not a fix.
+- `MESA_GL_VERSION_OVERRIDE=3.2COMPAT MESA_GLSL_VERSION_OVERRIDE=320` (a
+  workaround from the same forum thread for a *different* bug — Lima/Mali
+  400-450 red-pink tint, not applicable to our Panfrost/Mali-G31) breaks
+  Mesa outright: `Mesa 22.3.6 implementation error: Invalid GLSL version in
+  shading_language_version()` — blank screen, not a fix. Reverted.
+- Forum thread has no reported NV12/NV21 corruption on Allwinner hardware,
+  only the unrelated Lima tint bug on other GPUs — suggests this may be
+  **board/DTS-specific** (LonganPi 3H's mixer/CSC configuration) rather
+  than a generic repo bug, since another H618 board (Orange Pi Zero 3)
+  reportedly works flawlessly.
+
+### Next steps if resumed
+Likely needs comparing this board's DTS mixer/CSC (color-space-converter)
+setup against a known-working H618 board's DTS — this repo's own kernel
+patches already touch that exact code (`0011`/DE33 mixer port,
+`sun8i_csc.c`) for HDMI display support, so the color pipeline is at least
+partially understood territory. Not reachable via more mpv/env-var
+experimentation alone.
+
+### Current board state (lpi3h-f1a0)
+- `apt.undo.it` repo + key + pin-priority-600 preference file still
+  installed; `ffmpeg`/`libav*` still downgraded to the v4l2request build
+- `/etc/mpv/mpv.conf` has the working (colors-wrong) overlay config above
+- `libdrm-tests` (for `modetest`) installed
+- Test file at `/tmp/vidtest/test.mp4` (not the user's original file path)
+- None of this has been reverted — paused mid-investigation at user's
+  request, not cleaned up like the two dead-end VA-API attempts
+
+---
+
+## Cedrus VA-API hardware video decode — investigation result (2026-09-01)
 
 **Conclusion: Classic BT (A2DP) not possible with this chip. BLE also unreachable.**
 

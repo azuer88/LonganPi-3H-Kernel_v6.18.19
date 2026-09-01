@@ -30,6 +30,12 @@ RUN apt-get update && apt-get install -y \
     libelf-dev \
     libelf-dev:arm64 \
     libdw-dev \
+    meson \
+    ninja-build \
+    pkg-config \
+    libva-dev:arm64 \
+    libdrm-dev:arm64 \
+    libudev-dev:arm64 \
     debhelper \
     dpkg-dev \
     fakeroot \
