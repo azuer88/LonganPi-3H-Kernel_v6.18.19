@@ -1,8 +1,11 @@
-From 8bd71d8cd218c7981978016e37511f27e5d9807c Mon Sep 17 00:00:00 2001
+From 4111f08af838fa4b32155a756902610ec011b5fc Mon Sep 17 00:00:00 2001
 From: Tiandi Zhou <zhoutiandi@sipeed.com>
 Date: Wed, 6 Dec 2023 15:30:52 +0800
-Subject: [PATCH 16/56] longanpi_3h_defconfig: enable aic8800 wifi support
+Subject: [PATCH 16/69] longanpi_3h_defconfig: enable aic8800 wifi support
 
+---
+ arch/arm64/configs/longanpi_3h_defconfig | 3 +++
+ 1 file changed, 3 insertions(+)
 
 diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
 index b44df4582..ff948e885 100644
@@ -19,5 +22,5 @@ index b44df4582..ff948e885 100644
  
  #
 -- 
-2.17.1
+2.50.1
 

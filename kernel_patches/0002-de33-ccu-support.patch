@@ -1,8 +1,20 @@
-From 6af6b6e0f6b355da5631b8772cc317fb0d1c3cd0 Mon Sep 17 00:00:00 2001
+From c474441cd7dd78eb743d3f50492a4381925934b6 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 04:42:31 +0000
-Subject: [PATCH 02/56] de33 ccu support
+Subject: [PATCH 02/69] de33 ccu support
 
+---
+ drivers/clk/sunxi-ng/Kconfig          |   4 +
+ drivers/clk/sunxi-ng/Kconfig.orig     | 136 +++++++++++++++++++
+ drivers/clk/sunxi-ng/Makefile         |   2 +
+ drivers/clk/sunxi-ng/Makefile.orig    |  81 ++++++++++++
+ drivers/clk/sunxi-ng/ccu-sun8i-de33.c | 181 ++++++++++++++++++++++++++
+ drivers/clk/sunxi-ng/ccu-sun8i-de33.h |  19 +++
+ 6 files changed, 423 insertions(+)
+ create mode 100644 drivers/clk/sunxi-ng/Kconfig.orig
+ create mode 100644 drivers/clk/sunxi-ng/Makefile.orig
+ create mode 100644 drivers/clk/sunxi-ng/ccu-sun8i-de33.c
+ create mode 100644 drivers/clk/sunxi-ng/ccu-sun8i-de33.h
 
 diff --git a/drivers/clk/sunxi-ng/Kconfig b/drivers/clk/sunxi-ng/Kconfig
 index 6af2d020e..d02832170 100644
@@ -481,5 +493,5 @@ index 000000000..83cbef5a3
 +
 +#endif /* _CCU_SUN8I_DE2_H_ */
 -- 
-2.17.1
+2.50.1
 

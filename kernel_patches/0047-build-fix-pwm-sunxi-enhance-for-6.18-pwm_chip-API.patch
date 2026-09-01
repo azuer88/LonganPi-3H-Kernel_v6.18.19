@@ -1,7 +1,7 @@
-From a0dc0f272edf9822c4120c9dd77f45782a4c33dc Mon Sep 17 00:00:00 2001
+From 559e73ecec4176acab0a70e44a7bc44c727254ab Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 12:54:06 +0000
-Subject: [PATCH 47/56] build: fix pwm-sunxi-enhance for 6.18 pwm_chip API
+Subject: [PATCH 47/69] build: fix pwm-sunxi-enhance for 6.18 pwm_chip API
 
 - chip->dev-> to chip->dev. (dev is now embedded struct device)
 - chip.dev.parent = &pdev->dev instead of chip.dev = &pdev->dev
@@ -9,6 +9,9 @@ Subject: [PATCH 47/56] build: fix pwm-sunxi-enhance for 6.18 pwm_chip API
 - Remove pwm-base DT property reading code
 - pwm->pwm - chip->base -> pwm->hwpwm (hwpwm is hw index)
 - void remove instead of int
+---
+ drivers/pwm/pwm-sunxi-enhance.c | 26 ++++++++------------------
+ 1 file changed, 8 insertions(+), 18 deletions(-)
 
 diff --git a/drivers/pwm/pwm-sunxi-enhance.c b/drivers/pwm/pwm-sunxi-enhance.c
 index 7d452adcb..a098888dd 100644
@@ -103,5 +106,5 @@ index 7d452adcb..a098888dd 100644
  
  static int sunxi_pwm_suspend(struct platform_device *pdev, pm_message_t state)
 -- 
-2.17.1
+2.50.1
 

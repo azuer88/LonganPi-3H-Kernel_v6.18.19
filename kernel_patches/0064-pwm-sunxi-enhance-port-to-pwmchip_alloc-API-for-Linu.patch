@@ -1,8 +1,8 @@
-From 5da372d71ca60a734dd05592f223e94a84f98ead Mon Sep 17 00:00:00 2001
+From d10f9b7e6d4037291a1551de4860533aa9418094 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Tue, 14 Apr 2026 12:35:28 +0800
-Subject: [PATCH] pwm: sunxi-enhance: port to pwmchip_alloc() API for Linux
- 6.7+
+Subject: [PATCH 64/69] pwm: sunxi-enhance: port to pwmchip_alloc() API for
+ Linux 6.7+
 
 Linux 6.7 added a uses_pwmchip_alloc guard in __pwmchip_add() that
 rejects drivers embedding struct pwm_chip directly (returning -EINVAL).
@@ -174,5 +174,5 @@ index a098888dd..45b0a4233 100644
  
  static int sunxi_pwm_suspend(struct platform_device *pdev, pm_message_t state)
 -- 
-2.17.1
+2.50.1
 

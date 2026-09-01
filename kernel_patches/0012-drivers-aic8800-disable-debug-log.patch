@@ -1,8 +1,11 @@
-From 8f195ec07ce0f5feb581b588f922704505ea346f Mon Sep 17 00:00:00 2001
+From 19ab2fea9c441a3648357bfa9f64db300934250e Mon Sep 17 00:00:00 2001
 From: Lu Hui <luhui@sipeed.com>
 Date: Tue, 7 Nov 2023 16:05:14 +0800
-Subject: [PATCH 12/56] drivers: aic8800: disable debug log
+Subject: [PATCH 12/69] drivers: aic8800: disable debug log
 
+---
+ drivers/net/wireless/aic8800/aic8800_fdrv/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/drivers/net/wireless/aic8800/aic8800_fdrv/Makefile b/drivers/net/wireless/aic8800/aic8800_fdrv/Makefile
 index c39461efb..1ae275d89 100644
@@ -18,5 +21,5 @@ index c39461efb..1ae275d89 100644
  
  obj-$(CONFIG_AIC8800_WLAN_SUPPORT) := $(MODULE_NAME).o
 -- 
-2.17.1
+2.50.1
 

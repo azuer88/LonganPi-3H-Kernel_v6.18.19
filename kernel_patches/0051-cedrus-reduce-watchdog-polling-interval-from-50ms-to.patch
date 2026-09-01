@@ -1,9 +1,12 @@
-From 3c90865b8f4aad52469cbdb44aabb6648261ff91 Mon Sep 17 00:00:00 2001
+From 69b647607e80e532f8f4a1c0266b03ebc2b783ef Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Sat, 28 Mar 2026 22:36:43 +0800
-Subject: [PATCH 51/56] cedrus: reduce watchdog polling interval from 50ms to
+Subject: [PATCH 51/69] cedrus: reduce watchdog polling interval from 50ms to
  5ms
 
+---
+ drivers/staging/media/sunxi/cedrus/cedrus_dec.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
 index 193730af6..7291d6a27 100644
@@ -19,5 +22,5 @@ index 193730af6..7291d6a27 100644
  		ctx->current_codec->trigger(ctx);
  	} else {
 -- 
-2.17.1
+2.50.1
 

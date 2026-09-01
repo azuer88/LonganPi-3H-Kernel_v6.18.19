@@ -1,7 +1,7 @@
-From eb924cc03bb4859333034ec8611dafd346253197 Mon Sep 17 00:00:00 2001
+From c736155c66df981fdebd71b7fdc55ad84f9ac78a Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Tue, 14 Apr 2026 16:40:11 +0800
-Subject: [PATCH] aic_load_fw: return -ENODEV instead of -1 for fw-loaded
+Subject: [PATCH 67/69] aic_load_fw: return -ENODEV instead of -1 for fw-loaded
  re-enumeration
 
 After firmware is loaded onto the AIC8800D80, the device re-enumerates
@@ -36,5 +36,5 @@ index c2136fe8a..d95559412 100644
  
      usb_dev = kzalloc(sizeof(struct aic_usb_dev), GFP_ATOMIC);
 -- 
-2.17.1
+2.50.1
 

@@ -1,7 +1,7 @@
-From bc1ba6f12f0e8d6c69f5bbdc35aa04d34ef94bc9 Mon Sep 17 00:00:00 2001
+From b249cec9f73b9d6ad5abfb16c345bb8ce322b80f Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Sat, 28 Mar 2026 13:59:10 +0000
-Subject: [PATCH 50/56] cedrus: add H616/H618 VPU support with SRAM C1 and IRQ
+Subject: [PATCH 50/69] cedrus: add H616/H618 VPU support with SRAM C1 and IRQ
  workaround
 
 Enable the Cedrus VPU on Allwinner H616/H618 (LonganPi 3H).
@@ -27,12 +27,22 @@ instead of declaring a timeout. Reduce the watchdog delay to 50 ms to
 keep per-frame latency acceptable.
 
 Tested: H264 decode at 1920x1080 working on lpi3h-f1a0 (H618 board).
+---
+ .../arm64/boot/dts/allwinner/sun50i-h616.dtsi | 24 +++++++
+ arch/arm64/configs/longanpi_3h_defconfig      | 15 +++--
+ drivers/soc/sunxi/sunxi_sram.c                | 10 +++
+ drivers/staging/media/sunxi/cedrus/cedrus.c   | 18 +++++
+ drivers/staging/media/sunxi/cedrus/cedrus.h   |  4 ++
+ .../staging/media/sunxi/cedrus/cedrus_dec.c   |  2 +-
+ .../staging/media/sunxi/cedrus/cedrus_h264.c  | 45 +++++++++----
+ .../staging/media/sunxi/cedrus/cedrus_hw.c    | 66 +++++++++++++++++--
+ 8 files changed, 160 insertions(+), 24 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 index fa5b5eca8..b45c80c19 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-@@ -159,6 +159,17 @@
+@@ -159,6 +159,17 @@ soc {
  		#size-cells = <1>;
  		ranges = <0x0 0x0 0x0 0x40000000>;
  
@@ -50,7 +60,7 @@ index fa5b5eca8..b45c80c19 100644
  		gpu: gpu@1800000 {
  			compatible = "allwinner,sun50i-h616-mali",
  				     "arm,mali-bifrost";
-@@ -252,6 +263,19 @@
+@@ -252,6 +263,19 @@ de3_sram: sram-section@0 {
  			};
  		};
  
@@ -164,10 +174,10 @@ index 446b9fc1f..d7c121960 100644
  };
  
 diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.c b/drivers/staging/media/sunxi/cedrus/cedrus.c
-index bff42ea18..b63126ebc 100644
+index 6de345b4e..539945086 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus.c
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus.c
-@@ -647,6 +647,16 @@ static const struct cedrus_variant sun50i_h6_cedrus_variant = {
+@@ -651,6 +651,16 @@ static const struct cedrus_variant sun50i_h6_cedrus_variant = {
  	.mod_rate	= 600000000,
  };
  
@@ -184,7 +194,7 @@ index bff42ea18..b63126ebc 100644
  static const struct of_device_id cedrus_dt_match[] = {
  	{
  		.compatible = "allwinner,sun4i-a10-video-engine",
-@@ -692,6 +702,14 @@ static const struct of_device_id cedrus_dt_match[] = {
+@@ -696,6 +706,14 @@ static const struct of_device_id cedrus_dt_match[] = {
  		.compatible = "allwinner,sun50i-h6-video-engine",
  		.data = &sun50i_h6_cedrus_variant,
  	},
@@ -242,10 +252,10 @@ index fbbf9e6f0..193730af6 100644
  		ctx->current_codec->trigger(ctx);
  	} else {
 diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_h264.c b/drivers/staging/media/sunxi/cedrus/cedrus_h264.c
-index 3e2843ef6..9c3a9923a 100644
+index fc54d993b..84540ba48 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus_h264.c
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus_h264.c
-@@ -321,24 +321,34 @@ static void cedrus_write_pred_weight_table(struct cedrus_ctx *ctx,
+@@ -324,24 +324,34 @@ static void cedrus_write_pred_weight_table(struct cedrus_ctx *ctx,
   * rare cases frame is not decoded correctly. However, setting offset to 0 and
   * skipping appropriate amount of bits with flush bits trigger always works.
   */
@@ -283,7 +293,7 @@ index 3e2843ef6..9c3a9923a 100644
  			      struct cedrus_run *run)
  {
  	const struct v4l2_ctrl_h264_decode_params *decode = run->h264.decode_params;
-@@ -378,15 +388,27 @@ static void cedrus_set_params(struct cedrus_ctx *ctx,
+@@ -381,15 +391,27 @@ static void cedrus_set_params(struct cedrus_ctx *ctx,
  	}
  
  	/*
@@ -317,7 +327,7 @@ index 3e2843ef6..9c3a9923a 100644
  
  	if (V4L2_H264_CTRL_PRED_WEIGHTS_REQUIRED(pps, slice))
  		cedrus_write_pred_weight_table(ctx, run);
-@@ -478,6 +500,7 @@ static void cedrus_set_params(struct cedrus_ctx *ctx,
+@@ -481,6 +503,7 @@ static void cedrus_set_params(struct cedrus_ctx *ctx,
  		     VE_H264_CTRL_SLICE_DECODE_INT |
  		     VE_H264_CTRL_DECODE_ERR_INT |
  		     VE_H264_CTRL_VLD_DATA_REQ_INT);
@@ -325,7 +335,7 @@ index 3e2843ef6..9c3a9923a 100644
  }
  
  static enum cedrus_irq_status
-@@ -531,9 +554,7 @@ static int cedrus_h264_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+@@ -534,9 +557,7 @@ static int cedrus_h264_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
  	if (ret)
  		return ret;
  
@@ -458,5 +468,5 @@ index 444fb5387..a1168ce60 100644
  	of_reserved_mem_device_release(dev->dev);
  }
 -- 
-2.17.1
+2.50.1
 

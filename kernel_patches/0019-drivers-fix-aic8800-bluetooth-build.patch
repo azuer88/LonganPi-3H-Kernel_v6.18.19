@@ -1,8 +1,11 @@
-From 159491785f0649194c3de22743dce0e4577e4d8f Mon Sep 17 00:00:00 2001
+From 0f1916c6cedefefb496690a6ebf8d3137c362513 Mon Sep 17 00:00:00 2001
 From: Tiandi Zhou <zhoutiandi@sipeed.com>
 Date: Wed, 20 Dec 2023 14:09:31 +0800
-Subject: [PATCH 19/56] drivers: fix aic8800 bluetooth build
+Subject: [PATCH 19/69] drivers: fix aic8800 bluetooth build
 
+---
+ drivers/bluetooth/aic_btusb.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/drivers/bluetooth/aic_btusb.c b/drivers/bluetooth/aic_btusb.c
 index 119eef726..754c2aef8 100755
@@ -18,5 +21,5 @@ index 119eef726..754c2aef8 100755
          AICBT_ERR("Failed to create bt char class");
          return PTR_ERR(bt_char_class);
 -- 
-2.17.1
+2.50.1
 

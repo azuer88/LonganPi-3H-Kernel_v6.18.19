@@ -1,9 +1,14 @@
-From 9306468d6ad606780b0aaa1cc241dd8b52d210b4 Mon Sep 17 00:00:00 2001
+From 90d41df18d0292b07c86cd4f7810d2d60b89868c Mon Sep 17 00:00:00 2001
 From: Tiandi Zhou <zhoutiandi@sipeed.com>
 Date: Mon, 26 Feb 2024 11:41:56 +0800
-Subject: [PATCH 23/56] drivers: aic8800: fix build for version of 20231212
+Subject: [PATCH 23/69] drivers: aic8800: fix build for version of 20231212
  vendor driver
 
+---
+ .../wireless/aic8800/aic8800_fdrv/rwnx_main.c | 19 +++++++++++++++++--
+ .../aic8800/aic8800_fdrv/rwnx_mod_params.c    |  6 +++++-
+ .../wireless/aic8800/aic8800_fdrv/rwnx_rx.c   |  9 +++++++--
+ 3 files changed, 29 insertions(+), 5 deletions(-)
 
 diff --git a/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_main.c b/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_main.c
 index 0e1d000a9..6d7b85df3 100644
@@ -113,5 +118,5 @@ index 41a1e13e9..15a8d933e 100644
          if (count > ARRAY_SIZE(rwnx_hw->stats.amsdus_rx))
              count = ARRAY_SIZE(rwnx_hw->stats.amsdus_rx);
 -- 
-2.17.1
+2.50.1
 

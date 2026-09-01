@@ -1,14 +1,20 @@
-From 63592cb46663ccc5d0a9217f87ffebdc783dfa5e Mon Sep 17 00:00:00 2001
+From 64b82665e29d607061b7b92c10d9d1f69c0ea4e9 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 04:43:06 +0000
-Subject: [PATCH 29/56] longanpi-3h: default enable uart1 & i2c3
+Subject: [PATCH 29/69] longanpi-3h: default enable uart1 & i2c3
 
+---
+ .../arm64/boot/dts/allwinner/sun50i-h616.dtsi |  15 ++
+ .../boot/dts/allwinner/sun50i-h616.dtsi.orig  | 200 ++++++++++++++++++
+ .../dts/allwinner/sun50i-h618-longanpi-3h.dts |  15 ++
+ .../sun50i-h618-longanpi-3h.dts.orig          |  35 +++
+ 4 files changed, 265 insertions(+)
 
 diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 index 37a256fe8..18b198236 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-@@ -322,6 +322,11 @@
+@@ -322,6 +322,11 @@ ext_rgmii_pins: rgmii-pins {
  				drive-strength = <40>;
  			};
  
@@ -20,7 +26,7 @@ index 37a256fe8..18b198236 100644
  			i2c0_pins: i2c0-pins {
  				pins = "PI5", "PI6";
  				function = "i2c0";
-@@ -332,6 +337,11 @@
+@@ -332,6 +337,11 @@ i2c3_ph_pins: i2c3-ph-pins {
  				function = "i2c3";
  			};
  
@@ -32,7 +38,7 @@ index 37a256fe8..18b198236 100644
  			ir_rx_pin: ir-rx-pin {
  				pins = "PH10";
  				function = "ir_rx";
-@@ -392,6 +402,11 @@
+@@ -392,6 +402,11 @@ spdif_tx_pin: spdif-tx-pin {
  				function = "spdif";
  			};
  
@@ -289,7 +295,7 @@ diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/ar
 index cb7cf19ca..36f554e0b 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
-@@ -157,6 +157,21 @@
+@@ -157,6 +157,21 @@ &uart0 {
  	status = "okay";
  };
  
@@ -372,5 +378,5 @@ index 16c68177f..cb7cf19ca 100644
  	ext_rgmii_phy: ethernet-phy@1 {
  		compatible = "ethernet-phy-ieee802.3-c22";
 -- 
-2.17.1
+2.50.1
 

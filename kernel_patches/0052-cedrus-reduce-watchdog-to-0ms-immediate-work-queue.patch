@@ -1,8 +1,11 @@
-From b761887ef19e82500e30a785ae5124eeaf1dffb7 Mon Sep 17 00:00:00 2001
+From 21810c32a45242e6e66ca0c8a592c0c452fcd4f9 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Sat, 28 Mar 2026 22:46:45 +0800
-Subject: [PATCH 52/56] cedrus: reduce watchdog to 0ms (immediate work queue)
+Subject: [PATCH 52/69] cedrus: reduce watchdog to 0ms (immediate work queue)
 
+---
+ drivers/staging/media/sunxi/cedrus/cedrus_dec.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
 index 7291d6a27..70de9b4e9 100644
@@ -18,5 +21,5 @@ index 7291d6a27..70de9b4e9 100644
  		ctx->current_codec->trigger(ctx);
  	} else {
 -- 
-2.17.1
+2.50.1
 

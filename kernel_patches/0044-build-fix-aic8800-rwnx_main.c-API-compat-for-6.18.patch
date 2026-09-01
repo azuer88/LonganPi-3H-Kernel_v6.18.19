@@ -1,7 +1,7 @@
-From 97aa75f24dd85e47b99a4d0fefb98fe11f69c4ef Mon Sep 17 00:00:00 2001
+From 46f68a25a818f8c618534fe0dcf5e34d20340ca0 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 09:04:56 +0000
-Subject: [PATCH 44/56] build: fix aic8800 rwnx_main.c API compat for 6.18
+Subject: [PATCH 44/69] build: fix aic8800 rwnx_main.c API compat for 6.18
 
 - MODULE_IMPORT_NS: use string syntax
 - set_monitor_channel: add net_device* param for >= 6.0
@@ -10,6 +10,9 @@ Subject: [PATCH 44/56] build: fix aic8800 rwnx_main.c API compat for 6.18
 - start_radar_detection: add link_id param for >= 6.1
 - cfg80211_ch_switch_notify: add 6.18 version (3-arg, link_id removed)
 - cfg80211_ch_switch_started_notify: add 6.18 version (5-arg)
+---
+ .../wireless/aic8800/aic8800_fdrv/rwnx_main.c | 29 ++++++++++++++++---
+ 1 file changed, 25 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_main.c b/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_main.c
 index 6d7b85df3..9e64d0b7e 100644
@@ -102,5 +105,5 @@ index 6d7b85df3..9e64d0b7e 100644
  MODULE_FIRMWARE(RWNX_CONFIG_FW_NAME);
  
 -- 
-2.17.1
+2.50.1
 

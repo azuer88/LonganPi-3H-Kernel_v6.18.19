@@ -1,8 +1,11 @@
-From 09defcc8aacd930d011ad402de42e674ad18c6b9 Mon Sep 17 00:00:00 2001
+From 39d957a74195ad08fadd8cf7172fdc114bab6273 Mon Sep 17 00:00:00 2001
 From: Tiandi Zhou <zhoutiandi@sipeed.com>
 Date: Tue, 19 Dec 2023 16:05:55 +0800
-Subject: [PATCH 18/56] longanpi_3h_defconfig: enable aic8800 bluetooth support
+Subject: [PATCH 18/69] longanpi_3h_defconfig: enable aic8800 bluetooth support
 
+---
+ arch/arm64/configs/longanpi_3h_defconfig | 489 ++++++++++++++++++++---
+ 1 file changed, 434 insertions(+), 55 deletions(-)
 
 diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
 index ff948e885..fab082fe0 100644
@@ -947,5 +950,5 @@ index ff948e885..fab082fe0 100644
  CONFIG_ARCH_USE_MEMTEST=y
  # CONFIG_MEMTEST is not set
 -- 
-2.17.1
+2.50.1
 

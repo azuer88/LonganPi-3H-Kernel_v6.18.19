@@ -1,11 +1,21 @@
-From 8f6318d760de52d7447b904550f5c6f5df383f5a Mon Sep 17 00:00:00 2001
+From 0d8110742c05b62eca34ae4863154fe869466835 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 04:43:28 +0000
-Subject: [PATCH 33/56] [linux] Add HID wakeup support
+Subject: [PATCH 33/69] Add HID wakeup support
 
+---
+ drivers/usb/dwc2/gadget.c                |   62 +
+ drivers/usb/dwc2/gadget.c.orig           | 5737 ++++++++++++++++++++++
+ drivers/usb/gadget/function/f_hid.c      |   16 +
+ drivers/usb/gadget/function/f_hid.c.orig | 1694 +++++++
+ drivers/usb/gadget/function/u_hid.h      |    1 +
+ drivers/usb/gadget/legacy/hid.c          |    2 +-
+ 6 files changed, 7511 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/usb/dwc2/gadget.c.orig
+ create mode 100644 drivers/usb/gadget/function/f_hid.c.orig
 
 diff --git a/drivers/usb/dwc2/gadget.c b/drivers/usb/dwc2/gadget.c
-index 0637bfbc0..8c1301262 100644
+index a6c2b8de3..1e4f37ee3 100644
 --- a/drivers/usb/dwc2/gadget.c
 +++ b/drivers/usb/dwc2/gadget.c
 @@ -4374,6 +4374,67 @@ static int dwc2_gadget_ep_set_wedge(struct usb_ep *ep)
@@ -76,7 +86,7 @@ index 0637bfbc0..8c1301262 100644
  /**
   * dwc2_hsotg_ep_sethalt - set halt on a given endpoint
   * @ep: The endpoint to set halt.
-@@ -4791,6 +4852,7 @@ static const struct usb_gadget_ops dwc2_hsotg_gadget_ops = {
+@@ -4793,6 +4854,7 @@ static const struct usb_gadget_ops dwc2_hsotg_gadget_ops = {
  	.udc_set_speed		= dwc2_gadget_set_speed,
  	.vbus_session		= dwc2_hsotg_vbus_session,
  	.vbus_draw		= dwc2_hsotg_vbus_draw,
@@ -5828,7 +5838,7 @@ index 000000000..0637bfbc0
 +	hsotg->bus_suspended = false;
 +}
 diff --git a/drivers/usb/gadget/function/f_hid.c b/drivers/usb/gadget/function/f_hid.c
-index 98efc7cb1..edf2cd6ad 100644
+index ee59e6516..38ebc2d63 100644
 --- a/drivers/usb/gadget/function/f_hid.c
 +++ b/drivers/usb/gadget/function/f_hid.c
 @@ -49,6 +49,7 @@ struct report_entry {
@@ -5862,7 +5872,7 @@ index 98efc7cb1..edf2cd6ad 100644
  	spin_lock_irqsave(&hidg->write_spinlock, flags);
  
  	if (!hidg->req) {
-@@ -1385,6 +1398,7 @@ F_HID_OPT(subclass, 8, 255);
+@@ -1381,6 +1394,7 @@ F_HID_OPT(subclass, 8, 255);
  F_HID_OPT(protocol, 8, 255);
  F_HID_OPT(no_out_endpoint, 8, 1);
  F_HID_OPT(report_length, 16, 65535);
@@ -5870,7 +5880,7 @@ index 98efc7cb1..edf2cd6ad 100644
  
  static ssize_t f_hid_opts_report_desc_show(struct config_item *item, char *page)
  {
-@@ -1490,6 +1504,7 @@ CONFIGFS_ATTR_RO(f_hid_opts_, dev);
+@@ -1486,6 +1500,7 @@ CONFIGFS_ATTR_RO(f_hid_opts_, dev);
  static struct configfs_attribute *hid_attrs[] = {
  	&f_hid_opts_attr_subclass,
  	&f_hid_opts_attr_protocol,
@@ -5878,7 +5888,7 @@ index 98efc7cb1..edf2cd6ad 100644
  	&f_hid_opts_attr_no_out_endpoint,
  	&f_hid_opts_attr_report_length,
  	&f_hid_opts_attr_interval,
-@@ -1633,6 +1648,7 @@ static struct usb_function *hidg_alloc(struct usb_function_instance *fi)
+@@ -1639,6 +1654,7 @@ static struct usb_function *hidg_alloc(struct usb_function_instance *fi)
  		}
  	}
  	hidg->use_out_ep = !opts->no_out_endpoint;
@@ -7612,5 +7622,5 @@ index 3684546e8..df23c96f4 100644
  
  /****************************** Gadget Bind ******************************/
 -- 
-2.17.1
+2.50.1
 

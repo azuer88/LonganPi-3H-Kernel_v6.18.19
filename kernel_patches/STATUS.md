@@ -1,6 +1,16 @@
 # kernel_patches Patch Application Status
-## Target kernel: 6.18.19 (at /home/ubuntu/Projects/test/LonganPi-3H-SDK/build/linux)
-## Applied on: 2026-03-25 | Last updated: 2026-04-14
+## Target kernel: 6.18.48 (at /extra/LPI3H/LonganPi-3H-SDK/build/linux)
+## Applied on: 2026-03-25 | Last updated: 2026-09-01
+
+## Kernel base upgrade: 6.18.19 -> 6.18.48 (2026-09-01)
+All 69 commits (67 numbered patches + 0068/0069 below) rebased cleanly from
+`v6.18.19` (4aea1dc4c) onto `v6.18.48` (2e57d67d6) with zero conflicts —
+`git rebase --onto v6.18.48 v6.18.19 HEAD` in a shallow clone. Clean-built and
+boot-tested on lpi3h-f182: WiFi, HDMI display, HDMI audio, Panfrost GPU
+(glmark2 score 131, matches 6.18.19 baseline), PWM/SPI nodes all verified
+working. All history below that refers to "6.18.19 base" predates this
+upgrade and is kept for context; the patches themselves did not change,
+only their base commit.
 
 ---
 
@@ -16,8 +26,10 @@
 
 ---
 
-## Applied (67 commits on top of 6.18.19 base: 4aea1dc4c)
-All patches applied except 0048. Current HEAD: eb924cc03
+## Applied (69 commits on top of 6.18.48 base: 2e57d67d6)
+All patches applied except 0048. Current HEAD: dc044f74c
+(previously 67 commits on 6.18.19 base 4aea1dc4c, HEAD eb924cc03 — see
+"Kernel base upgrade" note above)
 
   829bec518  add lpi3h defconfig                                    ← 0002
   6af6b6e0f  de33 ccu support                                       ← 0010 (fuzz)
@@ -84,7 +96,9 @@ All patches applied except 0048. Current HEAD: eb924cc03
   5da372d71  pwm: sunxi-enhance: port to pwmchip_alloc() API      ← 0064
   0772c03bc  pwm: sunxi-enhance: propagate DT node to pwm_chip    ← 0065
   4a13c2ea2  aic_load_fw: fix FORTIFY_SOURCE false positive        ← 0066
-  eb924cc03  aic_load_fw: return -ENODEV instead of -1            ← 0067
+  c736155c6  aic_load_fw: return -ENODEV instead of -1            ← 0067
+  18cd3c0b4  defconfig: xt_MASQUERADE/xt_NAT for Docker; BT fix   ← 0068
+  dc044f74c  aic8800_fdrv: rate-limit rxq overflow; MAX_RXQLEN=4096 ← 0069
 
 Manual fix notes:
   *  0043: PG17/PG18 pin order in h616.dtsi; uart1 pinctrl-names in LPI3H DTS

@@ -1,7 +1,7 @@
-From 56dce452b010a3dc61427c909402d79e69023ae4 Mon Sep 17 00:00:00 2001
+From 4d00ad037d63a30884b9a7b7d888c98915d06d17 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Thu, 26 Mar 2026 14:52:26 +0000
-Subject: [PATCH 48/56] drm/sun4i: add H616/DE33 display support (port of 0011)
+Subject: [PATCH 48/69] drm/sun4i: add H616/DE33 display support (port of 0011)
 
 - sun8i_hdmi_phy: add H616 MPLL/cur_ctr/phy_config tables, variant,
   and OF table entry for allwinner,sun50i-h616-hdmi-phy
@@ -10,12 +10,19 @@ Subject: [PATCH 48/56] drm/sun4i: add H616/DE33 display support (port of 0011)
   function; wire DE33 into set_ccsc_coefficients and enable_ccsc
 - sun50i-h616.dtsi: add reg-names to mixer0 node (mixer/top/display)
   required by devm_platform_ioremap_resource_byname in 6.18 driver
+---
+ .../arm64/boot/dts/allwinner/sun50i-h616.dtsi |  1 +
+ drivers/gpu/drm/sun4i/sun4i_tcon.c            |  4 +
+ drivers/gpu/drm/sun4i/sun4i_tcon.h            |  1 +
+ drivers/gpu/drm/sun4i/sun8i_csc.c             | 51 +++++++++++-
+ drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c        | 78 +++++++++++++++++++
+ 5 files changed, 134 insertions(+), 1 deletion(-)
 
 diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 index 853730bf8..fa5b5eca8 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-@@ -208,6 +208,7 @@
+@@ -208,6 +208,7 @@ mixer0: mixer@100000 {
  				reg = <0x100000 0x100000>,
  				      <0x8100 0x40>,
  				      <0x280000 0x20000>;
@@ -230,5 +237,5 @@ index 4fa69c463..c6228e7c9 100644
  };
  
 -- 
-2.17.1
+2.50.1
 

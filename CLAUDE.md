@@ -13,7 +13,7 @@ Build system for a customized Debian bookworm arm64 SD card image for the Longan
 bash run_docker.sh mkkernel.sh           # incremental build
 bash run_docker.sh mkkernel.sh --clean   # clean build (after config changes)
 ```
-The kernel source at `build/linux` is pre-patched (62 commits on 6.18.19). Outputs `build/*.deb`.
+The kernel source at `build/linux` is pre-patched (69 commits on 6.18.48). Outputs `build/*.deb`.
 
 ### Iterate on rootfs customization scripts (fast, no rebuild)
 ```bash
@@ -65,7 +65,7 @@ IMAGE_NAME=sdcard-$MACID  # optional override
 ```
 mkatf.sh → bl31.bin
 mkuboot.sh (uses bl31.bin) → u-boot-sunxi-with-spl.bin
-mklinux.sh → build/linux/  [clone Linux 6.18.19 + apply kernel_patches/; skips if exists]
+mklinux.sh → build/linux/  [clone Linux 6.18.48 + apply kernel_patches/; skips if exists]
 mkkernel.sh → linux-image-*.deb, linux-headers-*.deb
 mkoverlay.sh → overlay.deb (board config/firmware, package: sipeed-longanpi3h-extra)
 mkrootfs.sh → build/rootfs_base.ext4  [slow, cached, re-run only for package changes]
@@ -105,7 +105,7 @@ The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`. The SD card
 - SD card is **`/dev/mmcblk1`** in Linux (not mmcblk0 — eMMC registers as mmcblk0 even when it fails to init)
 - FAT boot partition mounts as: `sudo mount -t vfat -o iocharset=utf8 /dev/mmcblk1p1 /mnt`
 - To manually resize rootfs on a running board: `parted /dev/mmcblk1 resizepart 2 100%` then `resize2fs /dev/mmcblk1p2` (online resize is safe)
-- To update FAT boot partition after kernel upgrade: mount mmcblk1p1 and copy `/boot/vmlinuz-6.18.19` + DTB from `/usr/lib/linux-image-6.18.19/allwinner/`
+- To update FAT boot partition after kernel upgrade: mount mmcblk1p1 and copy `/boot/vmlinuz-6.18.48` + DTB from `/usr/lib/linux-image-6.18.48/allwinner/`
 - **Do not use parted without saving/restoring the disk signature** — parted randomises the MBR disk ID, breaking PARTUUID boot
 
 ### Serial console interaction
@@ -114,12 +114,12 @@ The MBR disk signature is hardcoded to `0x4c503348` in `mksdimg.sh`. The SD card
 - `sudo -S` with heredoc password works over SSH: `sudo -S cmd <<< password`
 
 ### Kernel source (`build/linux`)
-- Base: Linux 6.18.19 (commit `4aea1dc4c`)
-- 67 patches applied; current HEAD: `eb924cc03`
-- Patch files: `kernel_patches/0001-*.patch` … `0067-*.patch`
+- Base: Linux 6.18.48 (commit `2e57d67d6`)
+- 69 patches applied; current HEAD: `dc044f74c`
+- Patch files: `kernel_patches/0001-*.patch` … `0069-*.patch`
 - Full apply history: `kernel_patches/STATUS.md`
 - Config: `arch/arm64/configs/longanpi_3h_defconfig`
-- To revert all patches: `cd build/linux && git reset --hard 4aea1dc4c`
+- To revert all patches: `cd build/linux && git reset --hard 2e57d67d6`
 - **`git` operations in `build/linux` are slow** (~2–3 min per commit) — large repo, plan accordingly
 - To save a new patch: commit in `build/linux`, then `git format-patch -1 HEAD -o kernel_patches/ --start-number NNN`
 - `pwmchip_priv()` is `static` in `core.c` (not exported) — use `pwmchip_get_drvdata()` in out-of-tree drivers

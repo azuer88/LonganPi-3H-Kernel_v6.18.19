@@ -1,7 +1,7 @@
-From 5183590eadeaa5836e55e924ded8bf25220c03a8 Mon Sep 17 00:00:00 2001
+From 2d68e0c3444298bd8256d5bb02f451ece56ecabd Mon Sep 17 00:00:00 2001
 From: Lou Viannay <lou.viannay@octavesolution.com>
 Date: Tue, 31 Mar 2026 07:48:27 +0800
-Subject: [PATCH 2/4] defconfig: enable WATCHDOG_HANDLE_BOOT_ENABLED
+Subject: [PATCH 60/69] defconfig: enable WATCHDOG_HANDLE_BOOT_ENABLED
 
 Kick any bootloader-armed watchdog during kernel boot to prevent warm
 reset failures on boards where the bootloader arms the watchdog but
@@ -26,5 +26,5 @@ index 11534851f..bab674109 100644
  CONFIG_MFD_AXP20X_I2C=y
  CONFIG_MFD_SUN6I_PRCM=y
 -- 
-2.17.1
+2.50.1
 

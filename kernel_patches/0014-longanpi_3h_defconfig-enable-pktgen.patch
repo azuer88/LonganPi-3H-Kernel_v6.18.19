@@ -1,8 +1,11 @@
-From 9b1e732965c6dcf4cb75086417792ffea434e413 Mon Sep 17 00:00:00 2001
+From b7b709761edf80c5076370d6262d441d1b9823d7 Mon Sep 17 00:00:00 2001
 From: Lu Hui <luhui@sipeed.com>
 Date: Tue, 7 Nov 2023 16:26:52 +0800
-Subject: [PATCH 14/56] longanpi_3h_defconfig: enable pktgen
+Subject: [PATCH 14/69] longanpi_3h_defconfig: enable pktgen
 
+---
+ arch/arm64/configs/longanpi_3h_defconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
 index 9cb13fd79..2f971fc9d 100644
@@ -18,5 +21,5 @@ index 9cb13fd79..2f971fc9d 100644
  # end of Networking options
  
 -- 
-2.17.1
+2.50.1
 

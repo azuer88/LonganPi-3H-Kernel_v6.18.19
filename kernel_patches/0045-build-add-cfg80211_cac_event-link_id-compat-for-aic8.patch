@@ -1,9 +1,12 @@
-From ddbc502788c34025a1a9119c5e71236c329051f1 Mon Sep 17 00:00:00 2001
+From bd8c23612244d09e1bef0ceebc41e0b41e5af328 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 09:09:25 +0000
-Subject: [PATCH 45/56] build: add cfg80211_cac_event link_id compat for
+Subject: [PATCH 45/69] build: add cfg80211_cac_event link_id compat for
  aic8800
 
+---
+ drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_compat.h | 7 +++++++
+ 1 file changed, 7 insertions(+)
 
 diff --git a/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_compat.h b/drivers/net/wireless/aic8800/aic8800_fdrv/rwnx_compat.h
 index d173b2875..507fac615 100644
@@ -24,5 +27,5 @@ index d173b2875..507fac615 100644
  
  /* Remove the existing #endif before adding new content */
 -- 
-2.17.1
+2.50.1
 

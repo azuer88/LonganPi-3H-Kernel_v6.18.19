@@ -1,7 +1,7 @@
-From 888837b51925667307c473d1d32559d7463c6844 Mon Sep 17 00:00:00 2001
+From f23267127660963d7674ba4d81e25d5b1c43d32b Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Sun, 29 Mar 2026 05:34:13 +0800
-Subject: [PATCH 54/56] =?UTF-8?q?cedrus/dts:=20fix=20H616=20VE=20interrupt?=
+Subject: [PATCH 54/69] =?UTF-8?q?cedrus/dts:=20fix=20H616=20VE=20interrupt?=
  =?UTF-8?q?=20(GIC=20SPI=2089=20=E2=86=92=2093)=20and=20remove=20polling?=
  =?UTF-8?q?=20workaround?=
 MIME-Version: 1.0
@@ -16,12 +16,17 @@ bit 25 (SPI 89) never fires.
 With the correct interrupt, the watchdog polling workaround is no longer
 needed. Revert cedrus_watchdog to upstream behavior and restore the
 2000ms watchdog timeout.
+---
+ .../arm64/boot/dts/allwinner/sun50i-h616.dtsi |  2 +-
+ .../staging/media/sunxi/cedrus/cedrus_dec.c   |  2 +-
+ .../staging/media/sunxi/cedrus/cedrus_hw.c    | 48 -------------------
+ 3 files changed, 2 insertions(+), 50 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 index b45c80c19..2594da7f8 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-@@ -166,7 +166,7 @@
+@@ -166,7 +166,7 @@ video-codec@1c0e000 {
  				 <&ccu CLK_MBUS_VE>;
  			clock-names = "ahb", "mod", "ram";
  			resets = <&ccu RST_BUS_VE>;
@@ -111,5 +116,5 @@ index a1168ce60..4991fb6ca 100644
  	v4l2_m2m_buf_done_and_job_finish(ctx->dev->m2m_dev, ctx->fh.m2m_ctx,
  					 VB2_BUF_STATE_ERROR);
 -- 
-2.17.1
+2.50.1
 

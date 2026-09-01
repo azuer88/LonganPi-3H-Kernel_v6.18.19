@@ -1,5 +1,5 @@
 #!/bin/bash
-# Download Linux 6.18.19 and apply LPI3H patches.
+# Download Linux 6.18.48 and apply LPI3H patches.
 # Produces build/linux — a patched kernel source tree ready for mkkernel.sh.
 #
 # Usage: bash mklinux.sh [--force]
@@ -11,8 +11,8 @@
 #   LINUX_DIR      Destination path (default: ./build/linux)
 #   LINUX_URL      Kernel git URL (default: kernel.org stable tree)
 #   PATCHES_DIR    Patch directory  (default: ./kernel_patches)
-#   BASE_COMMIT    Base commit to check out (default: 4aea1dc4c)
-#   BASE_TAG       Tag for shallow clone   (default: v6.18.19)
+#   BASE_COMMIT    Base commit to check out (default: 2e57d67d6)
+#   BASE_TAG       Tag for shallow clone   (default: v6.18.48)
 pushd "$(dirname "$(realpath "$0")")" > /dev/null
 
 set -euo pipefail
@@ -30,8 +30,8 @@ fi
 LINUX_DIR="${LINUX_DIR:-$SCRIPT_DIR/build/linux}"
 LINUX_URL="${LINUX_URL:-https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git}"
 PATCHES_DIR="${PATCHES_DIR:-$SCRIPT_DIR/kernel_patches}"
-BASE_COMMIT="${BASE_COMMIT:-4aea1dc4c}"
-BASE_TAG="${BASE_TAG:-v6.18.19}"
+BASE_COMMIT="${BASE_COMMIT:-2e57d67d6}"
+BASE_TAG="${BASE_TAG:-v6.18.48}"
 FORCE=0
 
 for arg in "$@"; do

@@ -1,6 +1,8 @@
+From 2f80afaa4a8c148b52a54ac3a11194fd29c9af0b Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Tue, 31 Mar 2026 00:00:00 +0000
-Subject: [PATCH 0059] defconfig: enable USB_SERIAL and USB_SERIAL_CH341 for CH340 adapter support
+Subject: [PATCH 59/69] defconfig: enable USB_SERIAL and USB_SERIAL_CH341 for
+ CH340 adapter support
 
 Enable the USB serial subsystem and CH341 driver so that CH340/CH341
 USB-to-serial adapters enumerate as /dev/ttyUSB* devices.
@@ -25,5 +27,6 @@ index d79cf236d..11534851f 100644
  # CONFIG_WLAN_VENDOR_ADMTEK is not set
  CONFIG_ATH_DEBUG=y
  CONFIG_ATH9K=m
---
-2.39.5
+-- 
+2.50.1
+

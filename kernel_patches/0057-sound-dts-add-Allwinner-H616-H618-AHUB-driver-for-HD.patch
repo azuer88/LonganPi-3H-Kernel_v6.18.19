@@ -1,7 +1,7 @@
-From e89002e43ad38099052ec7326656f8c48c1cb1d2 Mon Sep 17 00:00:00 2001
+From 1a99e4c3dbedc076a1f27b56a918a65ffe8b28c8 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Sun, 29 Mar 2026 14:04:49 +0800
-Subject: [PATCH 1/2] sound/dts: add Allwinner H616/H618 AHUB driver for HDMI
+Subject: [PATCH 57/69] sound/dts: add Allwinner H616/H618 AHUB driver for HDMI
  audio
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -41,7 +41,7 @@ diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dt
 index 2594da7f8..5b4e338c4 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-@@ -860,6 +860,18 @@
+@@ -860,6 +860,18 @@ spdif: spdif@5093000 {
  			status = "disabled";
  		};
  
@@ -64,7 +64,7 @@ diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/ar
 index fb813756f..911821dc8 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
-@@ -103,6 +103,21 @@
+@@ -103,6 +103,21 @@ map1 {
  			};
  		};
  	};
@@ -86,7 +86,7 @@ index fb813756f..911821dc8 100644
  };
  
  &axp313 {
-@@ -151,6 +166,10 @@
+@@ -151,6 +166,10 @@ &emac0 {
  	status = "okay";
  };
  
@@ -695,5 +695,5 @@ index 000000000..00e805f83
 +MODULE_LICENSE("GPL");
 +MODULE_ALIAS("platform:sun50i-ahub");
 -- 
-2.17.1
+2.50.1
 

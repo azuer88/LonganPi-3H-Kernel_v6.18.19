@@ -1,7 +1,7 @@
-From 930f33032a74d5b46c7f6e0fa525e8f933c62637 Mon Sep 17 00:00:00 2001
+From 8760768225accb3ee47f81fa6218a4724b2629cc Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Sun, 29 Mar 2026 14:12:42 +0800
-Subject: [PATCH 2/2] defconfig: add CONFIG_SND_SIMPLE_CARD=m for HDMI audio
+Subject: [PATCH 58/69] defconfig: add CONFIG_SND_SIMPLE_CARD=m for HDMI audio
  machine driver
 
 simple-audio-card is the machine driver that connects the AHUB CPU DAI
@@ -25,5 +25,5 @@ index 89cdc1c15..d79cf236d 100644
  CONFIG_DMA_CMA=y
  CONFIG_PRINTK_TIME=y
 -- 
-2.17.1
+2.50.1
 

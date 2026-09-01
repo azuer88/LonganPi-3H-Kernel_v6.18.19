@@ -1,8 +1,11 @@
-From b239647b5bf41067a37628aeeffd915a5157b452 Mon Sep 17 00:00:00 2001
+From 990456595ae45af0de7e693cbc1ffd08a902753a Mon Sep 17 00:00:00 2001
 From: Lu Hui <luhui@sipeed.com>
 Date: Tue, 7 Nov 2023 16:37:44 +0800
-Subject: [PATCH 15/56] longanpi_3h_defconfig: enable usb gadget cdc composite
+Subject: [PATCH 15/69] longanpi_3h_defconfig: enable usb gadget cdc composite
 
+---
+ arch/arm64/configs/longanpi_3h_defconfig | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
 index 2f971fc9d..b44df4582 100644
@@ -19,5 +22,5 @@ index 2f971fc9d..b44df4582 100644
  # CONFIG_USB_G_MULTI is not set
  # CONFIG_USB_G_HID is not set
 -- 
-2.17.1
+2.50.1
 

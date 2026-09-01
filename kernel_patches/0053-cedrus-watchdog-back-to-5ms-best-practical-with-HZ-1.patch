@@ -1,9 +1,12 @@
-From 882f27c40e16342a9c3e03f755f3ddf77e9e8cc6 Mon Sep 17 00:00:00 2001
+From 70ac926ec6add462db64ae5aa042c6b772501a35 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Sat, 28 Mar 2026 22:53:10 +0800
-Subject: [PATCH 53/56] cedrus: watchdog back to 5ms (best practical with
+Subject: [PATCH 53/69] cedrus: watchdog back to 5ms (best practical with
  HZ=100)
 
+---
+ drivers/staging/media/sunxi/cedrus/cedrus_dec.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
 index 70de9b4e9..7291d6a27 100644
@@ -19,5 +22,5 @@ index 70de9b4e9..7291d6a27 100644
  		ctx->current_codec->trigger(ctx);
  	} else {
 -- 
-2.17.1
+2.50.1
 

@@ -1,14 +1,18 @@
-From 5fd519bfede5d8d4251390b17a30b1a4798fed25 Mon Sep 17 00:00:00 2001
+From 10eff49f8f55155931dce80a08f3baf0b39d8f6c Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 04:43:13 +0000
-Subject: [PATCH 32/56] sun50i-h618-fix-emac1-mdio1
+Subject: [PATCH 32/69] sun50i-h618-fix-emac1-mdio1
 
+---
+ .../arm64/boot/dts/allwinner/sun50i-h616.dtsi | 28 +++++++++++++++++++
+ .../boot/dts/allwinner/sun50i-h616.dtsi.orig  |  7 +++++
+ 2 files changed, 35 insertions(+)
 
 diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 index 3e7ba6ded..02e5165d0 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-@@ -598,6 +598,34 @@
+@@ -598,6 +598,34 @@ uart5: serial@5001400 {
  			resets = <&ccu RST_BUS_UART5>;
  			status = "disabled";
  		};
@@ -62,5 +66,5 @@ index 18b198236..3e7ba6ded 100644
  				pins = "PI0", "PI1", "PI2", "PI3", "PI4",
  				       "PI5", "PI7", "PI8", "PI9", "PI10",
 -- 
-2.17.1
+2.50.1
 

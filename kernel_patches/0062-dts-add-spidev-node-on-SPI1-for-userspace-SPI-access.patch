@@ -1,7 +1,7 @@
-From 09a8d4145622bd432518731ea612cbeec765553b Mon Sep 17 00:00:00 2001
+From 018e5a3739170c15f1f29475940e0be4defdd5f0 Mon Sep 17 00:00:00 2001
 From: Lou Viannay <lou.viannay@octavesolution.com>
 Date: Tue, 31 Mar 2026 07:49:04 +0800
-Subject: [PATCH 4/4] dts: add spidev node on SPI1 for userspace SPI access
+Subject: [PATCH 62/69] dts: add spidev node on SPI1 for userspace SPI access
 
 Add a generic spidev device on SPI1 CS0 (pins PH5-PH8 on the 40-pin
 header). This exposes /dev/spidev1.0 via the spidev driver, allowing
@@ -21,7 +21,7 @@ diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/ar
 index 2291f5c46..59cb86c92 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
-@@ -227,7 +227,14 @@
+@@ -227,7 +227,14 @@ &uart1 {
  
  &spi1 {
  	pinctrl-0 = <&spi1_pins>, <&spi1_cs0_pin>;
@@ -37,5 +37,5 @@ index 2291f5c46..59cb86c92 100644
  
  &i2c3 {
 -- 
-2.17.1
+2.50.1
 

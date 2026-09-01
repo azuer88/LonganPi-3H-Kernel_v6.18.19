@@ -1,9 +1,12 @@
-From a8f3d00d204f14ff64db9ec27a48194de1d23f59 Mon Sep 17 00:00:00 2001
+From 38f3c6e1378a9065c88db714c0e90746c95e1211 Mon Sep 17 00:00:00 2001
 From: Tiandi Zhou <zhoutiandi@sipeed.com>
 Date: Fri, 1 Mar 2024 14:24:14 +0800
-Subject: [PATCH 25/56] longanpi_3h_defconfig: enable some configs for docker
+Subject: [PATCH 25/69] longanpi_3h_defconfig: enable some configs for docker
  usage
 
+---
+ arch/arm64/configs/longanpi_3h_defconfig | 255 ++++++++++++++++++++++-
+ 1 file changed, 246 insertions(+), 9 deletions(-)
 
 diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
 index 371d6f1a5..9b1914b00 100644
@@ -408,5 +411,5 @@ index 371d6f1a5..9b1914b00 100644
  # CONFIG_IRQ_POLL is not set
  CONFIG_MPILIB=y
 -- 
-2.17.1
+2.50.1
 

@@ -1,8 +1,17 @@
-From ef34c7b51e6249817c00dcb7417a7193664d4061 Mon Sep 17 00:00:00 2001
+From 443c69928b350291d04d18f5cc16e5e638f24952 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 04:51:43 +0000
-Subject: [PATCH 39/56] linux: add allwinner bsp support
+Subject: [PATCH 39/69] linux: add allwinner bsp support
 
+---
+ Kconfig                                       |  2 +
+ Makefile                                      |  2 +
+ .../arm64/boot/dts/allwinner/sun50i-h616.dtsi | 29 ++++++++++
+ .../dts/allwinner/sun50i-h618-longanpi-3h.dts | 11 ++++
+ drivers/dma-buf/dma-heap.c                    | 53 ++++++++++++++-----
+ include/linux/dma-heap.h                      | 35 ++++++++++++
+ scripts/Makefile.dtbs                         |  4 +-
+ 7 files changed, 122 insertions(+), 14 deletions(-)
 
 diff --git a/Kconfig b/Kconfig
 index 307e58114..f495ddbf7 100644
@@ -18,10 +27,10 @@ index 307e58114..f495ddbf7 100644
  
  source "fs/Kconfig.binfmt"
 diff --git a/Makefile b/Makefile
-index 67c2f5dbb..78b1e9c25 100644
+index f40baa6f6..6c457d808 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -580,6 +580,7 @@ LINUXINCLUDE    := \
+@@ -588,6 +588,7 @@ LINUXINCLUDE    := \
  		-I$(objtree)/arch/$(SRCARCH)/include/generated \
  		-I$(srctree)/include \
  		-I$(objtree)/include \
@@ -29,7 +38,7 @@ index 67c2f5dbb..78b1e9c25 100644
  		$(USERINCLUDE)
  
  KBUILD_AFLAGS   := -D__ASSEMBLY__ -fno-PIE
-@@ -791,6 +792,7 @@ ifeq ($(KBUILD_EXTMOD),)
+@@ -802,6 +803,7 @@ ifeq ($(KBUILD_EXTMOD),)
  # Objects we will link into vmlinux / subdirs we need to visit
  core-y		:=
  drivers-y	:=
@@ -41,7 +50,7 @@ diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dt
 index 6307fff27..e67613664 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-@@ -228,6 +228,35 @@
+@@ -228,6 +228,35 @@ mixer0_out_tcon_top_mixer0: endpoint {
  			};
  		};
  
@@ -81,7 +90,7 @@ diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/ar
 index a0f14f5be..9b969bf59 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
-@@ -19,6 +19,8 @@
+@@ -19,6 +19,8 @@ aliases {
  		ethernet0 = &emac0;
  		ethernet1 = &emac1;
  		serial0 = &uart0;
@@ -90,7 +99,7 @@ index a0f14f5be..9b969bf59 100644
  	};
  
  	chosen {
-@@ -202,6 +204,15 @@
+@@ -202,6 +204,15 @@ &uart1 {
  	status = "okay";
  };
  
@@ -258,5 +267,5 @@ index 2d321b813..dcfb8fc7e 100644
  	cat $(depfile).pre.tmp $(depfile).dtc.tmp > $(depfile) \
  	$(cmd_dtb_check)
 -- 
-2.17.1
+2.50.1
 

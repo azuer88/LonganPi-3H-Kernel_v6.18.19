@@ -1,7 +1,7 @@
-From 61391062ffe2fca50adfe515277ec1158ac47f73 Mon Sep 17 00:00:00 2001
+From dc044f74c8676dd5169b2be71ff3d66d6cc48852 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Fri, 17 Apr 2026 06:10:07 +0800
-Subject: [PATCH] aic8800_fdrv: rate-limit rxq overflow log; increase
+Subject: [PATCH 69/69] aic8800_fdrv: rate-limit rxq overflow log; increase
  MAX_RXQLEN to 4096
 
 The rxq overflow pr_err was firing hundreds of times per minute during
@@ -64,5 +64,5 @@ index 9d881140d..7d00e2c90 100644
              return;
          }
 -- 
-2.17.1
+2.50.1
 

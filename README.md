@@ -7,7 +7,7 @@ Testing trixie resulted in slower video decode, for some reason.  Haven't gotten
 
 Based on [sipeed/LonganPi-3H-SDK](https://github.com/sipeed/LonganPi-3H-SDK).
 
-## Hardware status (kernel 6.18.19)
+## Hardware status (kernel 6.18.48)
 
 | Peripheral | Status | Notes |
 |---|---|---|
@@ -15,7 +15,7 @@ Based on [sipeed/LonganPi-3H-SDK](https://github.com/sipeed/LonganPi-3H-SDK).
 | HDMI display | ✅ Working | DE33 driver; `video=HDMI-A-1:1280x720@60` in cmdline — needed if monitor is in power-save at boot, may not be required for all setups |
 | HDMI audio | ✅ Working | AHUB driver (`sun50i-ahub`); appears as `card 0: HDMI Audio` |
 | GPU (Mali-G31) | ✅ Working | Panfrost driver; `/dev/dri/renderD128`; 432 MHz; OpenGL ES 3.1; glmark2 score 131 @ 1920×1080 (full run; Mesa 22.3.6) |
-| VPU (Cedrus) | ✅ Working | H.264 / HEVC hardware decode; `/dev/video0` |
+| VPU (Cedrus) | ✅ Working | H.264 / HEVC hardware decode; `/dev/video0`. Kernel driver only — this rootfs has no userspace VA-API glue (`libva-v4l2-request`) or FFmpeg `v4l2request` hwaccel, so `mpv`/`ffmpeg` fall back to software decode; see `docs/mpv_howto.md` |
 | WiFi | ✅ Working | AIC8800D80 USB dongle (included on board) |
 | Bluetooth | ✅ Working | AIC8800 BT via USB (`hci0`) |
 | Ethernet | ✅ Working | `end0` (emac1) |
@@ -158,7 +158,7 @@ Output: `build/u-boot-sunxi-with-spl.bin`
 mklinux.sh
 ```
 
-Shallow-clones Linux 6.18.19 from `torvalds/linux` and applies all 62 LonganPi 3H
+Shallow-clones Linux 6.18.48 from `torvalds/linux` and applies all 69 LonganPi 3H
 patches from `kernel_patches/` in order, producing `build/linux`. Skips silently
 if `build/linux` already exists; use `--force` to re-clone from scratch.
 
@@ -496,7 +496,7 @@ Interfaces enabled in DTS: `uart1` (PG6/7), `i2c3` (PG18/17), `spi1` (PH5–8), 
 
 ## GPU benchmark
 
-Tested with `glmark2-drm` (DRM/KMS backend, no X11 required) on kernel 6.18.19 + Mesa 22.3.6:
+Tested with `glmark2-drm` (DRM/KMS backend, no X11 required) on kernel 6.18.48 + Mesa 22.3.6:
 
 ```
 GL_VENDOR:   Panfrost
@@ -509,32 +509,32 @@ Resolution:  1920×1080 fullscreen
 |-------|---------|-----|
 | build | use-vbo=false | 153 |
 | build | use-vbo=true | 153 |
-| texture | nearest | 316 |
-| texture | linear | 315 |
-| texture | mipmap | 321 |
+| texture | nearest | 314 |
+| texture | linear | 314 |
+| texture | mipmap | 319 |
 | shading | gouraud | 103 |
 | shading | blinn-phong-inf | 103 |
-| shading | phong | 91 |
+| shading | phong | 90 |
 | shading | cel | 86 |
 | bump | high-poly | 41 |
 | bump | normals | 222 |
 | bump | height | 210 |
 | effect2d | edge detect (3×3) | 76 |
 | effect2d | blur (5×5) | 27 |
-| pulsar | — | 297 |
+| pulsar | — | 294 |
 | desktop | blur | 35 |
-| desktop | shadow | 143 |
-| buffer | map | 55 |
+| desktop | shadow | 144 |
+| buffer | map | 54 |
 | buffer | subdata | 54 |
 | buffer | interleave+map | 62 |
-| ideas | — | 124 |
-| jellyfish | — | 68 |
+| ideas | — | 123 |
+| jellyfish | — | 67 |
 | terrain | — | 5 |
-| shadow | — | 38 |
+| shadow | — | 37 |
 | refract | — | 8 |
 | conditionals | no steps | 236 |
 | conditionals | fragment-steps=5 | 121 |
-| conditionals | vertex-steps=5 | 238 |
+| conditionals | vertex-steps=5 | 237 |
 | function | low complexity | 163 |
 | function | medium complexity | 89 |
 | loop | no uniform | 162 |

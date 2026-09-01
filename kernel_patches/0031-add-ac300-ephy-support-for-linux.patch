@@ -1,14 +1,20 @@
-From 32199b20020c4711800e0557f6aa76c5fb768262 Mon Sep 17 00:00:00 2001
+From f9d0716ec3f44614224da43534b4e4d30cd7926d Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 04:43:10 +0000
-Subject: [PATCH 31/56] add-ac300-ephy-support-for-linux
+Subject: [PATCH 31/69] add-ac300-ephy-support-for-linux
 
+---
+ .../arm64/boot/dts/allwinner/sun50i-h616.dtsi |  7 +++++++
+ .../boot/dts/allwinner/sun50i-h616.dtsi.orig  | 15 +++++++++++++++
+ .../dts/allwinner/sun50i-h618-longanpi-3h.dts | 19 +++++++++++++++++++
+ .../sun50i-h618-longanpi-3h.dts.orig          | 15 +++++++++++++++
+ 4 files changed, 56 insertions(+)
 
 diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 index 18b198236..3e7ba6ded 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-@@ -313,6 +313,13 @@
+@@ -313,6 +313,13 @@ pio: pinctrl@300b000 {
  			interrupt-controller;
  			#interrupt-cells = <3>;
  
@@ -66,7 +72,7 @@ diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/ar
 index 36f554e0b..00aa48713 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
-@@ -17,6 +17,7 @@
+@@ -17,6 +17,7 @@ / {
  
  	aliases {
  		ethernet0 = &emac0;
@@ -74,7 +80,7 @@ index 36f554e0b..00aa48713 100644
  		serial0 = &uart0;
  	};
  
-@@ -145,6 +146,24 @@
+@@ -145,6 +146,24 @@ ext_rgmii_phy: ethernet-phy@1 {
  	};
  };
  
@@ -126,5 +132,5 @@ index cb7cf19ca..36f554e0b 100644
  	/*
  	 * PHY0 pins are connected to a USB-C socket, but a role switch
 -- 
-2.17.1
+2.50.1
 

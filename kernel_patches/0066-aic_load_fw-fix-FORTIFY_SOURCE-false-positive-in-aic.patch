@@ -1,7 +1,7 @@
-From 4a13c2ea231555cdf971181d4811c5de19ff5900 Mon Sep 17 00:00:00 2001
+From 9dbcb55a8a4bcd6eb8b807142d95087fae6be117 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Tue, 14 Apr 2026 16:32:55 +0800
-Subject: [PATCH] aic_load_fw: fix FORTIFY_SOURCE false positive in
+Subject: [PATCH 66/69] aic_load_fw: fix FORTIFY_SOURCE false positive in
  aicbt_patch_info_unpack
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -52,5 +52,5 @@ index 184d85711..0fc19fd71 100644
      return 0;
  }
 -- 
-2.17.1
+2.50.1
 

@@ -1,14 +1,23 @@
-From 30bd15c1af862b1a56aee99bc3fffc1707a514a3 Mon Sep 17 00:00:00 2001
+From 41635969c2f9ec1520379a6dd8b36114350ba563 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 04:46:09 +0000
-Subject: [PATCH 37/56] linux: fix H618 emac1
+Subject: [PATCH 37/69] linux: fix H618 emac1
 
+---
+ .../arm64/boot/dts/allwinner/sun50i-h616.dtsi |   23 +-
+ .../boot/dts/allwinner/sun50i-h616.dtsi.orig  | 1272 -----------------
+ .../dts/allwinner/sun50i-h618-longanpi-3h.dts |    4 +-
+ .../sun50i-h618-longanpi-3h.dts.orig          |  219 ---
+ .../net/ethernet/stmicro/stmmac/dwmac-sun8i.c |   12 +-
+ 5 files changed, 19 insertions(+), 1511 deletions(-)
+ delete mode 100644 arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi.orig
+ delete mode 100644 arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts.orig
 
 diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 index 2011cf377..f04f6314b 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-@@ -640,28 +640,19 @@
+@@ -640,28 +640,19 @@ uart5: serial@5001400 {
  		};
  		
  		emac1: ethernet@5030000 {
@@ -1326,7 +1335,7 @@ diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/ar
 index 707da1309..49ebbd333 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
-@@ -171,14 +171,14 @@
+@@ -171,14 +171,14 @@ &emac1 {
  	pinctrl-0 = <&rmii_pins>;
  	phy-mode = "rmii";
  	phy-handle = <&ac300_ephy>;
@@ -1609,5 +1618,5 @@ index 5d871b2cd..6cc8ae63d 100644
  };
  MODULE_DEVICE_TABLE(of, sun8i_dwmac_match);
 -- 
-2.17.1
+2.50.1
 

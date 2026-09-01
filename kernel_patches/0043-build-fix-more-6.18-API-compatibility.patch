@@ -1,12 +1,17 @@
-From 3e5d2ec713e8482f5d7a28109bd257a246fe19e2 Mon Sep 17 00:00:00 2001
+From 1af58015c7823849c5d322abb56cd5dae0aa51b0 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 08:52:36 +0000
-Subject: [PATCH 43/56] build: fix more 6.18 API compatibility
+Subject: [PATCH 43/69] build: fix more 6.18 API compatibility
 
 - flush_cache.h: remove asm-generic/export.h (no longer exists in 6.18)
 - rwnx_compat.h: add timer API compat (del_timer/del_timer_sync ->
   timer_delete/timer_delete_sync, from_timer -> container_of) for 6.15+;
   add cfg80211 link_id compat for 6.4+ (spurious/4addr frame callbacks)
+---
+ bsp/drivers/ve/cedar-ve/flush_cache.h         | 119 ++++++++++++++++++
+ .../aic8800/aic8800_fdrv/rwnx_compat.h        |  17 +++
+ 2 files changed, 136 insertions(+)
+ create mode 100644 bsp/drivers/ve/cedar-ve/flush_cache.h
 
 diff --git a/bsp/drivers/ve/cedar-ve/flush_cache.h b/bsp/drivers/ve/cedar-ve/flush_cache.h
 new file mode 100644
@@ -161,5 +166,5 @@ index b85983532..d173b2875 100644
 +
 +/* Remove the existing #endif before adding new content */
 -- 
-2.17.1
+2.50.1
 

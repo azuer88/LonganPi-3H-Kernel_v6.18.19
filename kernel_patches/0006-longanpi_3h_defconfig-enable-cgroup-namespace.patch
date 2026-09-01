@@ -1,8 +1,11 @@
-From 7b150b5d49211d7a2e66d0b0b0adedc222050bdb Mon Sep 17 00:00:00 2001
+From 9ca2eefa9573a69a305ff3d94e0630f8a836ce0d Mon Sep 17 00:00:00 2001
 From: Tiandi Zhou <zhoutiandi@sipeed.com>
 Date: Fri, 1 Dec 2023 02:55:01 +0000
-Subject: [PATCH 06/56] longanpi_3h_defconfig: enable cgroup & namespace
+Subject: [PATCH 06/69] longanpi_3h_defconfig: enable cgroup & namespace
 
+---
+ arch/arm64/configs/longanpi_3h_defconfig | 24 ++++++++++++------------
+ 1 file changed, 12 insertions(+), 12 deletions(-)
 
 diff --git a/arch/arm64/configs/longanpi_3h_defconfig b/arch/arm64/configs/longanpi_3h_defconfig
 index 2d13b59b1..4da0c2b9f 100644
@@ -45,5 +48,5 @@ index 2d13b59b1..4da0c2b9f 100644
  CONFIG_PID_NS=y
  CONFIG_NET_NS=y
 -- 
-2.17.1
+2.50.1
 

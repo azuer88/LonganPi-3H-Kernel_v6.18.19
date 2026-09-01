@@ -1,7 +1,8 @@
-From 0772c03bcdfb1d32e5f2bde9c83ca996fc6e4703 Mon Sep 17 00:00:00 2001
+From 3650cef9acfe77eb2d34c8e491e9da6bb643c682 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Tue, 14 Apr 2026 16:27:03 +0800
-Subject: [PATCH] pwm: sunxi-enhance: propagate DT node to pwm_chip device
+Subject: [PATCH 65/69] pwm: sunxi-enhance: propagate DT node to pwm_chip
+ device
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -34,5 +35,5 @@ index 45b0a4233..30e3d41a4 100644
      pwm->base = devm_platform_ioremap_resource(pdev, 0);
      if (IS_ERR(pwm->base))
 -- 
-2.17.1
+2.50.1
 

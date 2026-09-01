@@ -1,14 +1,31 @@
-From 7cedfae9d15278926f842c7f3f8b0375f9d8a4a0 Mon Sep 17 00:00:00 2001
+From a8559cd540c008d2a7074b787be9a747d00f24aa Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 25 Mar 2026 04:43:31 +0000
-Subject: [PATCH 34/56] add pwm and fan support
+Subject: [PATCH 34/69] add pwm and fan support
 
+---
+ .../arm64/boot/dts/allwinner/sun50i-h616.dtsi |   88 ++
+ .../boot/dts/allwinner/sun50i-h616.dtsi.orig  |    6 +
+ .../dts/allwinner/sun50i-h618-longanpi-3h.dts |   40 +-
+ .../sun50i-h618-longanpi-3h.dts.orig          |   26 +-
+ arch/arm64/configs/longanpi_3h_defconfig      |   37 +-
+ drivers/pwm/Kconfig                           |    9 +
+ drivers/pwm/Kconfig.orig                      |  822 ++++++++++++
+ drivers/pwm/Makefile                          |    1 +
+ drivers/pwm/Makefile.orig                     |   77 ++
+ drivers/pwm/pwm-sunxi-enhance.c               | 1193 +++++++++++++++++
+ drivers/pwm/pwm-sunxi-enhance.h               |   59 +
+ 11 files changed, 2342 insertions(+), 16 deletions(-)
+ create mode 100644 drivers/pwm/Kconfig.orig
+ create mode 100644 drivers/pwm/Makefile.orig
+ create mode 100644 drivers/pwm/pwm-sunxi-enhance.c
+ create mode 100644 drivers/pwm/pwm-sunxi-enhance.h
 
 diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 index 02e5165d0..2011cf377 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
-@@ -334,6 +334,16 @@
+@@ -334,6 +334,16 @@ uart1_pg_pins: uart1-pg-pins {
  				function = "uart1";
  			};
  
@@ -25,7 +42,7 @@ index 02e5165d0..2011cf377 100644
  			i2c0_pins: i2c0-pins {
  				pins = "PI5", "PI6";
  				function = "i2c0";
-@@ -436,6 +446,36 @@
+@@ -436,6 +446,36 @@ x32clk_fanout_pin: x32clk-fanout-pin {
  				pins = "PG10";
  				function = "clock";
  			};
@@ -62,7 +79,7 @@ index 02e5165d0..2011cf377 100644
  		};
  
  		gic: interrupt-controller@3021000 {
-@@ -1220,6 +1260,54 @@
+@@ -1220,6 +1260,54 @@ r_rsb: rsb@7083000 {
  			#address-cells = <1>;
  			#size-cells = <0>;
  		};
@@ -145,7 +162,7 @@ diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/ar
 index 00aa48713..707da1309 100644
 --- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
-@@ -50,17 +50,14 @@
+@@ -50,17 +50,14 @@ leds {
  		compatible = "gpio-leds";
  
  		led-0 {
@@ -168,7 +185,7 @@ index 00aa48713..707da1309 100644
  		};
  	};
  
-@@ -81,6 +78,29 @@
+@@ -81,6 +78,29 @@ reg_vcc3v3: regulator-vcc3v3 {
  		regulator-always-on;
  		vin-supply = <&reg_vcc5v>;
  	};
@@ -198,7 +215,7 @@ index 00aa48713..707da1309 100644
  };
  
  &axp313 {
-@@ -212,3 +232,7 @@
+@@ -212,3 +232,7 @@ &usbphy {
  	usb2_vbus-supply = <&reg_vcc5v>;
  	status = "okay";
  };
@@ -2596,5 +2613,5 @@ index 000000000..93030cc67
 +#endif
 \ No newline at end of file
 -- 
-2.17.1
+2.50.1
 

@@ -1,7 +1,7 @@
-From e1fed238c22f7011f8a1a4fe33389a796c6cf1e9 Mon Sep 17 00:00:00 2001
+From 6e7b2c0211afb033326236f2c94964b090f59257 Mon Sep 17 00:00:00 2001
 From: Blue Cuenca <blue.cuenca@gmail.com>
 Date: Wed, 1 Apr 2026 02:14:08 +0800
-Subject: [PATCH] aic8800_fdrv: fix use-after-free and double-free in
+Subject: [PATCH 63/69] aic8800_fdrv: fix use-after-free and double-free in
  aicwf_process_rxframes
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -53,5 +53,5 @@ index 2b9ebf4bf..66b0cb386 100644
  
  	        if((skb->data[2] & USB_TYPE_CFG) != USB_TYPE_CFG) { // type : data
 -- 
-2.17.1
+2.50.1
 
