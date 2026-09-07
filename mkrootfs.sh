@@ -30,6 +30,7 @@ BASE_PACKAGE="ca-certificates locales dosfstools binutils file \
 	device-tree-compiler debian-archive-keyring linux-cpupower \
         network-manager \
 	pipewire pipewire-pulse wireplumber pipewire-audio-client-libraries \
+	dbus-user-session \
 	"
 if [ -z "$USER_PACKAGE" ]; then 
     # common packages I use that are not strictly necessary 
