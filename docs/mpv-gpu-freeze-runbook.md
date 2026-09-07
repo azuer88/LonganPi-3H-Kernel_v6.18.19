@@ -226,31 +226,33 @@ exist on `pipewire`. The root enabler was that this rootfs never had a
 real PipeWire/PulseAudio *server* installed (only client libs), so mpv
 silently fell back to the buggy `alsa` path on every launch.
 
-**Action item: bake this into the rootfs build.** Add `pipewire
-pipewire-pulse wireplumber pipewire-audio-client-libraries` to
-`custom/01_install_debs.sh` (or a new `custom/NN_pipewire.sh` script),
-and run `loginctl enable-linger <USER_NAME>` during rootfs
-customization so the user-session services start without an active
-login — this is what made it work on `f1a0`. Without this, every future
-SD card image ships with the same silent-fallback-to-alsa bug.
+**DONE — baked into the rootfs build and validated end-to-end
+(2026-09-07).** Landed across three commits:
+- `9a79bfb` — `pipewire pipewire-pulse wireplumber
+  pipewire-audio-client-libraries` added to `BASE_PACKAGE` in
+  `mkrootfs.sh`; lingering enabled by writing
+  `/var/lib/systemd/linger/$USER_NAME` directly in
+  `custom/09_lpi3h_config.sh` (`loginctl` can't run inside this script
+  since it executes under fakeroot without a chroot).
+- `1de2f25` — the first fresh-flash test caught a second bug:
+  wireplumber failed at *every* boot with "Cannot autolaunch D-Bus
+  without X11 $DISPLAY", because the systemd-activated per-user D-Bus
+  doesn't exist without `dbus-user-session` — pipewire/pipewire-pulse
+  alone aren't sufficient. Added that package too. Also added a
+  `99force-ipv4` apt config (`Acquire::ForceIPv4 "true"`) in
+  `custom/06_update_apt_proxy.sh`, since `deb.debian.org` kept 403'ing
+  over IPv6 while chasing this down.
+- `95f882d` — this runbook.
 
-## Open question / what we're still chasing
-
-The kernel side looks clean in every capture — no Panfrost fault, no
-dropped completion, no timeout. That points to Mesa/EGL never
-*submitting* the next frame's commit, for reasons not yet identified
-(the `disk$0` thread that keeps showing up is probably a red herring —
-see above). Next real diagnostic options, roughly in order of effort:
-
-1. Keep accumulating CSV data points (timing/thermal/load) across more
-   occurrences to check for a pattern before assuming there isn't one.
-2. Verbose Mesa/EGL-side logging (`EGL_LOG_LEVEL=debug`, Panfrost's
-   `PAN_MESA_DEBUG` env vars) to see what the render/present loop is
-   doing right up to the stall, since kernel-side tracing has been
-   exhausted without a hit.
-3. If a pattern does emerge (e.g. correlates with load spikes, specific
-   playback content, or long idle periods before the freeze), use that
-   to narrow where in Mesa to instrument next.
+**Full pipeline validated on real hardware:** `mkrootfs.sh` (rebuild)
+→ `mkcustomrootfs.sh` → `mksdimg.sh` → flashed to a physical SD card →
+booted fresh on `f1a0`. On that completely fresh image — zero manual
+steps beyond restoring the pre-existing, non-build-managed
+`~/.config/mpv/mpv.conf`/`/etc/mpv/mpv.conf` GPU-rendering config — all
+three pipewire services came up `active` on first boot, mpv
+auto-selected `AO: [pipewire]`, and played **95 minutes continuously
+with zero underruns and zero freezes**, matching the earlier
+manually-patched validation exactly. Investigation closed.
 
 `vo=drm` remains a known-working fallback (documented in
 `project_mpv_playback` memory) but is explicitly out of scope as a fix
