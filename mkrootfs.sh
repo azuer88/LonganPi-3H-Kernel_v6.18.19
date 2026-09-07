@@ -29,6 +29,7 @@ BASE_PACKAGE="ca-certificates locales dosfstools binutils file \
 	bluez bluez-hcidump bluez-tools btscanner bluez-alsa-utils \
 	device-tree-compiler debian-archive-keyring linux-cpupower \
         network-manager \
+	pipewire pipewire-pulse wireplumber pipewire-audio-client-libraries \
 	"
 if [ -z "$USER_PACKAGE" ]; then 
     # common packages I use that are not strictly necessary 

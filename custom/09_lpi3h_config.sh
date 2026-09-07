@@ -27,6 +27,17 @@ SYSD
 mkdir -p "$ROOTFS/etc/systemd/system"
 ln -sf /dev/null "$ROOTFS/etc/systemd/system/systemd-networkd-wait-online.service"
 
+# --- Enable systemd-logind lingering for the user ---
+# Needed so user-session services (pipewire, pipewire-pulse, wireplumber)
+# start at boot without requiring an active login. Equivalent to running
+# `loginctl enable-linger $USER_NAME`, done directly since this script
+# runs under fakeroot without a chroot.
+if [ -n "${USER_NAME:-}" ]; then
+    mkdir -p "$ROOTFS/var/lib/systemd/linger"
+    touch "$ROOTFS/var/lib/systemd/linger/$USER_NAME"
+    echo "Enabled lingering for $USER_NAME"
+fi
+
 # --- file capabilities: skipped under fakeroot (xattrs require real root) ---
 SETCAP=$(command -v setcap || echo /sbin/setcap)
 if [ "$(id -u)" -eq 0 ] && [ -x "$SETCAP" ]; then

@@ -4,6 +4,7 @@ build/*
 temp/*
 *.sublime-*
 .claude/
+docs/devices/
 build/genimage.cfg
 build.orig/
 docker_builder
