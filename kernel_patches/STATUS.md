@@ -338,6 +338,60 @@ and useful if this is revisited.
 wrong — paused mid-investigation, not a dead end like the VA-API attempts
 above.**
 
+**Update 2026-09-07 — root-caused on `lpi3h-f182`, still paused, but the
+kernel is now cleared.** Reproduced the same apt.undo.it setup on `f182`
+(a second board). Direct hardware decode confirmed again: full 107min file,
+17.7x realtime, zero errors — matches f1a0. But display gave a **fully
+black screen** on f182 with the same "working" plane config that gave f1a0
+a wrong-colors picture (the opposite/default mpv plane config still fails
+identically on both boards with atomic commit -22).
+
+Read the actual kernel driver source
+(`drivers/gpu/drm/sun4i/sun8i_ui_layer.c`, `sun8i_vi_layer.c`,
+`sun4i_crtc.c`) instead of more mpv.conf guessing, and both symptoms now
+have a kernel-side explanation:
+- The `-22` atomic failure is **correct kernel behavior, not a driver
+  bug**: `sun8i_ui_layer_init_one()` hardcodes the first UI channel as
+  `DRM_PLANE_TYPE_PRIMARY` (`sun8i_ui_layer.c:307`), and that plane's
+  format list is RGB-only (confirmed via `modetest`) — only the VI
+  channel plane supports NV12/P010/etc. Attaching hw-decoded YUV video to
+  "primary" asks the kernel to scan out a format that plane can't do;
+  rejection is correct. mpv's assumption that video belongs on "primary"
+  doesn't hold on this VI/UI-split hardware — nothing to patch here.
+- The black screen looks like **an mpv userspace bug, not a kernel alpha
+  bug**: `sun8i_ui_layer_update_alpha()` (`sun8i_ui_layer.c:28-46`) shows
+  the driver correctly uses `ALPHA_MODE_PIXEL` (real per-pixel alpha
+  blending) whenever mpv leaves the plane's constant-alpha property at
+  its default (which it does) — so the kernel side looks capable of
+  correct transparent compositing of the draw plane over the video plane
+  beneath it. Suspicion now points at mpv's own `vo_gpu`/DRM
+  "drmprime-overlay" backend, which was written assuming
+  video=primary/OSD=overlay (true almost everywhere except this
+  VI/UI-split SoC) and likely doesn't clear the draw-plane framebuffer
+  with alpha=0 in the reversed role this hardware requires.
+
+**Why f1a0 shows wrong colors but f182 shows solid black for the
+identical config: unresolved.** Possibly an mpv/Mesa version difference
+between the two boards' rootfs (not checked), or a first-frame clear
+race. Worth checking version parity before assuming a deeper hardware/DTS
+difference.
+
+**Next step if resumed:** the fix belongs in mpv's own source (its DRM
+"drmprime-overlay" backend, exact file not identified — mpv wasn't
+checked out locally this session), not in this repo's kernel patches or
+mpv.conf. That means cloning mpv, finding where it clears/inits the draw
+plane's GBM/EGL surface, patching it to force alpha=0, and cross-compiling
+— a materially bigger lift than anything tried so far. Don't re-attempt
+more plane-config permutations in mpv.conf expecting new information —
+the two configs are the only two structurally possible given the VI/UI
+format split, and both are now explained.
+
+f182 was left reverted to the confirmed-working software-decode mpv
+config after this investigation (no `hwdec`); the apt.undo.it repo and
+downgraded ffmpeg/libav* packages were left installed (hw decode itself
+works fine, just not mpv's display integration), and `libdrm-tests`
+(`modetest`) was installed for future plane debugging.
+
 Unlike the VA-API driver attempts (bootlin/libva-v4l2-request,
 mxsrc/libva-v4l2 — both genuinely dead ends, see below), this approach uses
 FFmpeg's own native `v4l2request`/`v4l2drmprime` hwaccel patches (from the
