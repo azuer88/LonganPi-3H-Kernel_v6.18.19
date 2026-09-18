@@ -16,9 +16,17 @@ than dedicating an H-bridge channel to it. Use a 4-wire PWM fan directly
 
 ## Target fan
 
-Fan rated **0.15A** (150mA). All component margins below (Q1 current
+**3507 blower** (35×35×7mm centrifugal/blower fan, not axial), 5V,
+rated **0.15A** (150mA). All component margins below (Q1 current
 rating, D1 current rating, C2 rail-sag buffering) are checked against this
 load — comfortable headroom throughout, nothing upsized for it.
+
+Being a blower rather than an axial fan likely explains the pronounced
+stall region observed during testing — centrifugal impellers generally
+have a steeper torque/RPM dropoff near their minimum than axial fans, and
+this is consistent with the sizeable gap measured between sustaining
+rotation (30%) and reliably cold-starting from a dead stop (45%); see
+`fan_control_userspace.py`'s `MIN_SPIN_DUTY` notes.
 
 ## Bill of materials
 
