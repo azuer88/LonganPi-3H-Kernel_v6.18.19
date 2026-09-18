@@ -100,6 +100,8 @@ All patches applied except 0048. Current HEAD: dc044f74c
   18cd3c0b4  defconfig: xt_MASQUERADE/xt_NAT for Docker; BT fix   ← 0068
   dc044f74c  aic8800_fdrv: rate-limit rxq overflow; MAX_RXQLEN=4096 ← 0069
   c64701a8e  dts: repoint pwm1 to PG19, PH3 doesn't output full-swing logic ← 0070
+  5ba211664  dts: tighten fan0 cooling-levels based on empirical thermal testing ← 0071
+  86d28917e  dts: tune fan0 thermal zone trips and polling rate from live testing ← 0072
 
 Manual fix notes:
   *  0043: PG17/PG18 pin order in h616.dtsi; uart1 pinctrl-names in LPI3H DTS

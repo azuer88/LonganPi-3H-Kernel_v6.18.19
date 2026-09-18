@@ -1,0 +1,76 @@
+From 86d28917ec3c0bc22f732febdc88352cc6c75e97 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Sat, 19 Sep 2026 05:34:39 +0800
+Subject: [PATCH] dts: tune fan0 thermal zone trips and polling rate from live
+ testing
+
+Empirical stress-ng --cpu 4 --cpu-load 100 testing (with the tightened
+cooling-levels from kernel_patches/0071) found:
+
+- cpu_threshold trip temperature (60/55/50C) made no measurable
+  difference on its own -- all ~70.7-70.9C peak. Kept at 50C for a
+  small margin, but polling-delay-passive was the real lever.
+- polling-delay-passive 500ms->250ms gave a real improvement (peak
+  70.7C->70.2C, whole operating range shifted down ~3-4C). 250/175/100ms
+  then clustered together (69.6-70.2C, diminishing returns -- likely
+  limited by the ths sensor's own sampling rate). Settled on 175ms.
+- cpu_critical lowered 110C->90C: this board has no cpufreq thermal
+  throttling (both thermal-zone trips bind to the same fan0 cooling
+  device), so the fan is the only defense against runaway heat if it
+  ever fails -- cut power well before 110C rather than waiting that
+  long, with real margin over the ~70C worst-case measured with a
+  healthy fan.
+---
+ .../dts/allwinner/sun50i-h618-longanpi-3h.dts | 36 +++++++++++++++++++
+ 1 file changed, 36 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+index b836ef875..3943dbb78 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+@@ -294,6 +294,42 @@ &pwm {
+ 	status = "okay";
+ };
+ 
++/*
++ * Lowered from the SoC dtsi default of 60C (2026-09-19). Tested 60/55/50C
++ * under stress-ng --cpu 4 --cpu-load 100 with the tightened cooling-levels
++ * above (kernel_patches/0071) -- all three measured statistically
++ * indistinguishable (~70.7-70.9C peak). The real bottleneck turned out to
++ * be step_wise's fixed per-tick ramp rate (see polling-delay-passive
++ * below), not where the ramp starts -- kept at 50C for a bit more margin
++ * even though it wasn't independently decisive.
++ */
++&cpu_threshold {
++	temperature = <50000>;
++};
++
++/*
++ * Lowered from the SoC dtsi default of 500ms (2026-09-19): this is what
++ * actually moved the needle. Swept 500/250/175/100ms under stress-ng
++ * --cpu 4 --cpu-load 100 -- 500ms peaked ~70.7-70.9C, 250/175/100ms all
++ * clustered at 69.6-70.2C (diminishing returns below 250ms, likely
++ * limited by the ths sensor's own sampling rate). Settled on 175ms.
++ */
++&{/thermal-zones/cpu-thermal} {
++	polling-delay-passive = <175>;
++};
++
++/*
++ * Lowered from the SoC dtsi default of 110C: this board has no cpufreq
++ * thermal throttling, so the fan is the only defense against runaway
++ * heat -- if it ever fails entirely, cut power well before the SoC
++ * reaches damaging temperatures rather than waiting for 110C. Measured
++ * worst-case under stress-ng --cpu 4 --cpu-load 100 with a healthy fan
++ * is ~70C, so 90C leaves real margin without risking nuisance trips.
++ */
++&cpu_critical {
++	temperature = <90000>;
++};
++
+ /*
+  * Header pin 33 (PH3, the pwm1 pin bound by the SoC dtsi default) does not
+  * output full-swing logic on this board -- reproduced identically on a
+-- 
+2.50.1
+

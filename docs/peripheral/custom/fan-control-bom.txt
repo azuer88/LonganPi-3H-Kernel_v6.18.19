@@ -1,0 +1,7 @@
+
+Q1 - AO3400 or 2N7000 or IRLZ44N (overkill but bulletproof)  
+R1 - ~100R - 220R 
+R2 - ~10K (important so the fan doesn't glitch/spin during kernel init)
+D1 - 1N4148 or 1N5819 Schottky (cathode to +V, anode to switched node)
+
+

@@ -1,0 +1,52 @@
+From 5ba211664cdbf1cce16d86bcf8de34f9e90915ed Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Sat, 19 Sep 2026 04:36:04 +0800
+Subject: [PATCH] dts: tighten fan0 cooling-levels based on empirical thermal
+ testing
+
+The old cooling-levels (1 100 150 200 255 = ~0.4/39/59/78/100%) were
+untested placeholders. Logic-analyzer + stress-ng testing on the real
+fan circuit (pin 7/PH2, the pwm2 channel fan0 uses) found 40% duty
+already dangerously close to 70C under real ~50% CPU load -- and this
+board has no cpufreq thermal throttling to fall back on (both
+thermal-zone trips bind to this same fan0 cooling device, confirmed via
+/sys/class/thermal/thermal_zone2/cdev0 and cdev1 both pointing at
+cooling_device0).
+
+Raise state1 39%->50% and state2 59%->65% (both confirmed safe with
+real margin under 50% CPU load), and state3 78%->80% (best idle margin
+measured, 44.2-44.5C). state0 (near-off below 60C) and state4 (100% at
+critical) unchanged.
+---
+ .../dts/allwinner/sun50i-h618-longanpi-3h.dts     | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+index ea5f696cd..b836ef875 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+@@ -96,7 +96,20 @@ reg_vcc3v3: regulator-vcc3v3 {
+ 
+ 	fan0: pwm-fan {
+         compatible = "pwm-fan";
+-        cooling-levels = <1 100 150 200 255>;
++        /*
++         * Tightened 2026-09-19 from empirical logic-analyzer + stress-ng
++         * testing (see kernel_patches/STATUS.md and
++         * docs/peripheral/custom/fan_control_userspace.py): 40% duty
++         * (the old state1, ~39%) measured dangerously close to 70C under
++         * real ~50% CPU load, and this board has NO cpufreq thermal
++         * throttling to fall back on if the fan curve is too weak (both
++         * thermal-zone trips bind to this same cooling device). Raised
++         * state1 39%->50% and state2 59%->65% (both confirmed safe with
++         * real margin under load), state3 78%->80% (best idle margin
++         * measured). state0/state4 unchanged (near-off below 60C /
++         * max at critical).
++         */
++        cooling-levels = <1 128 166 204 255>;
+         #cooling-cells = <2>;
+ 		pwms = <&pwm 2 50000 1>;
+ 		status = "okay";
+-- 
+2.50.1
+
