@@ -472,7 +472,7 @@ Use `gpiodetect` / `gpioget` / `gpioset` from `gpiod`.
 | 30  | GND    | —    | —    | —    | GND |
 | 31  | PG3    | G    | 195  | yes  | SDC1_D1 |
 | 32  | PG19   | G    | 211  | yes  | **PWM1** |
-| 33  | PH3    | H    | 227  | yes  | UART5_TX / **PWM1** / SPDIF_IN |
+| 33  | PH3    | H    | 227  | yes  | UART5_TX / **PWM1** / SPDIF_IN — **damaged on both lpi3h-f182 and lpi3h-f1a0, do not use** (see below) |
 | 34  | GND    | —    | —    | —    | GND |
 | 35  | PG12   | G    | 204  | yes  | I2S2_LRCK |
 | 36  | PG5    | G    | 197  | yes  | SDC1_D3 |
@@ -493,6 +493,8 @@ Pins not on header (reserved):
 The side debug header also exposes a 5V pin connected to the board's 5V rail. **Do not connect 5V on the debug header if the board is already powered via USB-C** — both supplies would be shorted together.
 
 Interfaces enabled in DTS: `uart1` (PG6/7), `i2c3` (PG18/17), `spi1` (PH5–8), `pwm` (PH2/3 via `pwm-fan`).
+
+**Header pin 33 (PH3/PWM1) does not output full-swing logic** — measured ~0.9–1.2V high instead of 3.3V (confirmed via logic analyzer voltage-threshold sweep and plain GPIO toggle, both real PWM and raw digital output). Reproduced identically on two separate boards (lpi3h-f182 and lpi3h-f1a0), so it isn't isolated physical damage to one unit — likely a pin/silicon characteristic of PH3-as-PWM1 on this SoC, not fixable via devicetree/driver config (checked `pwm-sunxi-enhance.c` and the pinctrl mux table — no drive-strength/bias override exists to change). **Use header pin 7 (PH2/PWM2, already bound to the `fan0` node) instead, or PG19 (header pin 32) once repointed via a new `pwm1_pg_pin` pinctrl node** — PG19 confirmed electrically healthy (clean high above 2.5V) via the same GPIO toggle test.
 
 ## GPU benchmark
 

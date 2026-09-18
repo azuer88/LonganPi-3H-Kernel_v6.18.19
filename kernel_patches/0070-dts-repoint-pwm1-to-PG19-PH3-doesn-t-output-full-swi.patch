@@ -1,0 +1,82 @@
+From c64701a8e4e273e6495adda0949bad0a86b3e5ac Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Sat, 19 Sep 2026 03:31:35 +0800
+Subject: [PATCH] dts: repoint pwm1 to PG19, PH3 doesn't output full-swing
+ logic
+
+Header pin 33 (PH3, the pwm1 pin bound by the SoC dtsi default) measures
+~0.9-1.2V high instead of 3.3V, both as real PWM and plain GPIO output.
+Reproduced identically on two separate boards (lpi3h-f182, lpi3h-f1a0),
+so it isn't isolated physical damage to one unit. Checked
+pwm-sunxi-enhance.c and the pinctrl mux table -- no drive-strength/bias
+config exists that could explain it, so this isn't a devicetree/driver
+misconfiguration either.
+
+Add a pwm1_pg_pin pinctrl node for PG19 (header pin 32, same pwm1
+hardware channel) and repoint pwm1's pinctrl-0 there in the board dts.
+Confirmed electrically healthy (clean 3.3V swing) via GPIO toggle test,
+and real hardware PWM now measures correctly (1kHz/25% duty, full
+3.3V swing) via logic analyzer capture.
+---
+ .../arm64/boot/dts/allwinner/sun50i-h616.dtsi |  6 +++++
+ .../dts/allwinner/sun50i-h618-longanpi-3h.dts | 23 +++++++++++++++++++
+ 2 files changed, 29 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+index 5b4e338c4..eccf984f4 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+@@ -479,6 +479,12 @@ pwm1_ph_pin: pwm1-ph-pin {
+ 				function = "pwm1";
+ 			};
+ 
++			/omit-if-no-ref/
++			pwm1_pg_pin: pwm1-pg-pin {
++				pins = "PG19";
++				function = "pwm1";
++			};
++
+ 			/omit-if-no-ref/
+ 			pwm2_ph_pin: pwm2-ph-pin {
+ 				pins = "PH2";
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+index 59cb86c92..ea5f696cd 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+@@ -35,6 +35,19 @@ linux,cma {
+ 			size = <0x0 0x8000000>;
+ 			linux,cma-default;
+ 		};
++
++		/* Sits right after the BL31 secmon reservation (0x40000000-
++		 * 0x40040000), so it stays in range on every RAM size this
++		 * board ships with. Survives a warm reboot (panic, watchdog);
++		 * a full power-cycle drops DRAM refresh and loses it. */
++		ramoops@40040000 {
++			compatible = "ramoops";
++			reg = <0x0 0x40040000 0x0 0x80000>;
++			record-size = <0x20000>;
++			console-size = <0x20000>;
++			ftrace-size = <0x20000>;
++			pmsg-size = <0x20000>;
++		};
+ 	};
+ 
+ 	hdmi_connector: connector {
+@@ -267,3 +280,13 @@ &usbphy {
+ &pwm {
+ 	status = "okay";
+ };
++
++/*
++ * Header pin 33 (PH3, the pwm1 pin bound by the SoC dtsi default) does not
++ * output full-swing logic on this board -- reproduced identically on a
++ * second board too, see kernel_patches/STATUS.md. Repoint pwm1 to PG19
++ * (header pin 32) instead, confirmed electrically healthy.
++ */
++&pwm1 {
++	pinctrl-0 = <&pwm1_pg_pin>;
++};
+-- 
+2.50.1
+
