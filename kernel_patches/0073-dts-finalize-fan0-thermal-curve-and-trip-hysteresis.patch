@@ -1,0 +1,148 @@
+From ffea81d5feb6d460875cf37a98e55eef384c4d13 Mon Sep 17 00:00:00 2001
+From: Blue Cuenca <blue.cuenca@gmail.com>
+Date: Sat, 19 Sep 2026 08:10:37 +0800
+Subject: [PATCH] dts: finalize fan0 thermal curve and trip hysteresis
+
+Final iteration on top of 0072's dts changes, after further live testing
+with a logic analyzer and stress-ng --cpu 4 --cpu-load 100:
+
+- cooling-levels: state0 raised from ~0.4% (off) to 48%, the validated
+  cold-start floor (fan_control_userspace.py's MIN_SPIN_DUTY) -- the fan
+  is kept spinning continuously below cpu_threshold rather than switched
+  off, per fan-pwm-mosfet.md's rationale. state1/2/3 set to 55/80/100%.
+- cpu_threshold reverted to the SoC dtsi default of 60C (50C caused
+  continuous 0<->1<->2 flapping right at idle temp, ~49.5-50.5C, with no
+  measured thermal benefit) with hysteresis=6C added.
+- cpu_target given the same 6C hysteresis, for the same
+  boundary-crossing-chatter reason as cpu_threshold.
+
+Also documents a real limitation found and accepted, not fixed: under
+sustained load, gov_step_wise.c can hunt indefinitely between whichever
+two adjacent cooling states straddle the load's actual thermal
+equilibrium point, because get_tz_trend() in thermal_helpers.c is a raw
+unsmoothed sample-to-sample comparison with no hysteresis of its own.
+Confirmed this is NOT fixable by choosing different cooling-levels
+values (relocates to a different state pair every time -- tested
+55/65%, 65/80%, and 55/80%) or by trip hysteresis (the hunting happens
+within a trip's own active range, not at its outer crossing). Accepted
+as thermally harmless.
+---
+ .../dts/allwinner/sun50i-h618-longanpi-3h.dts | 82 +++++++++++++------
+ 1 file changed, 59 insertions(+), 23 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+index 3943dbb78..d41228ac5 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h618-longanpi-3h.dts
+@@ -97,19 +97,37 @@ reg_vcc3v3: regulator-vcc3v3 {
+ 	fan0: pwm-fan {
+         compatible = "pwm-fan";
+         /*
+-         * Tightened 2026-09-19 from empirical logic-analyzer + stress-ng
++         * Tuned 2026-09-19 from empirical logic-analyzer + stress-ng
+          * testing (see kernel_patches/STATUS.md and
+-         * docs/peripheral/custom/fan_control_userspace.py): 40% duty
+-         * (the old state1, ~39%) measured dangerously close to 70C under
+-         * real ~50% CPU load, and this board has NO cpufreq thermal
+-         * throttling to fall back on if the fan curve is too weak (both
+-         * thermal-zone trips bind to this same cooling device). Raised
+-         * state1 39%->50% and state2 59%->65% (both confirmed safe with
+-         * real margin under load), state3 78%->80% (best idle margin
+-         * measured). state0/state4 unchanged (near-off below 60C /
+-         * max at critical).
++         * docs/peripheral/custom/fan_control_userspace.py). This board
++         * has NO cpufreq thermal throttling to fall back on if the fan
++         * curve is too weak (both thermal-zone trips bind to this same
++         * cooling device).
++         *
++         * state0 raised from ~0.4% (off) to 48%, the validated
++         * cold-start floor (MIN_SPIN_DUTY in fan_control_userspace.py;
++         * true cold-start minimum measured at 45%, +margin) -- the fan
++         * is kept spinning continuously below cpu_threshold rather than
++         * switched off, per fan-pwm-mosfet.md's rationale (a directly
++         * power-switched fan is more prone to failing a cold start than
++         * to sustaining rotation).
++         *
++         * state1/state2/state3 (55/80/100%) chosen from measured safe
++         * duty values under stress-ng --cpu 4 --cpu-load 100 (50%
++         * minimum for real margin below 70C, 80% best idle margin).
++         * Under sustained load, step_wise (drivers/thermal/gov_step_wise.c)
++         * can hunt indefinitely between whichever two adjacent states
++         * straddle the load's actual equilibrium point -- confirmed this
++         * is NOT fixable by choosing different duty values (relocates
++         * to a different state pair/temperature every time, tested
++         * 55/65%, 65/80%, and 55/80%) or by cooling-maps trip hysteresis
++         * (get_tz_trend() in thermal_helpers.c is a raw, unsmoothed
++         * sample-to-sample comparison with no hysteresis of its own).
++         * Accepted as a harmless characteristic of this governor -- the
++         * fan just cycles between two reasonably close speeds under
++         * some sustained loads, peak temp stays controlled either way.
+          */
+-        cooling-levels = <1 128 166 204 255>;
++        cooling-levels = <122 140 204 255 255>;
+         #cooling-cells = <2>;
+ 		pwms = <&pwm 2 50000 1>;
+ 		status = "okay";
+@@ -295,29 +313,47 @@ &pwm {
+ };
+ 
+ /*
+- * Lowered from the SoC dtsi default of 60C (2026-09-19). Tested 60/55/50C
+- * under stress-ng --cpu 4 --cpu-load 100 with the tightened cooling-levels
+- * above (kernel_patches/0071) -- all three measured statistically
+- * indistinguishable (~70.7-70.9C peak). The real bottleneck turned out to
+- * be step_wise's fixed per-tick ramp rate (see polling-delay-passive
+- * below), not where the ramp starts -- kept at 50C for a bit more margin
+- * even though it wasn't independently decisive.
++ * Trip temperature alone (60/55/50C tested) made no measurable difference
++ * to peak temp under stress-ng --cpu 4 --cpu-load 100 -- all ~70.7-70.9C
++ * peak. Kept at the SoC dtsi default of 60C: idle temp naturally sits at
++ * ~49.5-50.5C, so 60C keeps a healthy ~10C gap (50C caused continuous
++ * 0<->1<->2 flapping right at idle temp with zero thermal benefit).
++ *
++ * hysteresis=6C added as defense in depth against ordinary
++ * boundary-crossing chatter (once triggered, won't reset until temp
++ * drops to 54C, not just back under 60C) -- see gov_step_wise.c /
++ * thermal_core.c move_to_trips_reached() for exactly what this does and
++ * doesn't cover; it does NOT reach the separate state1<->2 hunting issue
++ * described in the cooling-levels comment above. Matches cpu_target's
++ * hysteresis below for consistency, no other reason for the value.
+  */
+ &cpu_threshold {
+-	temperature = <50000>;
++	temperature = <60000>;
++	hysteresis = <6000>;
+ };
+ 
+ /*
+  * Lowered from the SoC dtsi default of 500ms (2026-09-19): this is what
+- * actually moved the needle. Swept 500/250/175/100ms under stress-ng
+- * --cpu 4 --cpu-load 100 -- 500ms peaked ~70.7-70.9C, 250/175/100ms all
+- * clustered at 69.6-70.2C (diminishing returns below 250ms, likely
+- * limited by the ths sensor's own sampling rate). Settled on 175ms.
++ * actually moved the needle on peak temp. Swept 500/250/175/100ms under
++ * stress-ng --cpu 4 --cpu-load 100 -- 500ms peaked ~70.7-70.9C,
++ * 250/175/100ms all clustered at 69.6-70.2C (diminishing returns below
++ * 250ms, likely limited by the ths sensor's own sampling rate). 175ms
++ * chosen as a good point in that plateau.
+  */
+ &{/thermal-zones/cpu-thermal} {
+ 	polling-delay-passive = <175>;
+ };
+ 
++/*
++ * Added hysteresis=0 -> 6C (2026-09-19): cpu_target drives cooling
++ * states 2-4 (cooling-maps map1) the same way cpu_threshold drives
++ * states 0-2, and was exposed to the same boundary-crossing chatter risk
++ * with 0 hysteresis. Matches cpu_threshold's value for consistency.
++ */
++&cpu_target {
++	hysteresis = <6000>;
++};
++
+ /*
+  * Lowered from the SoC dtsi default of 110C: this board has no cpufreq
+  * thermal throttling, so the fan is the only defense against runaway
+-- 
+2.50.1
+
